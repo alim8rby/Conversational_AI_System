@@ -1,5 +1,5 @@
-from langchain.vectorstores import Pinecone
-from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores import Pinecone # type: ignore
+from langchain.embeddings.openai import OpenAIEmbeddings # type: ignore
 
 class MemoryManager:
     def __init__(self, index_name: str, api_key: str):
