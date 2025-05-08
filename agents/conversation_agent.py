@@ -1,85 +1,51 @@
 import os
-import re
 from together import Together
 from memory.memory_manager import MemoryManager
 
-def detect_language(text: str) -> str:
-    """
-    Decide which dialect to use:
-    - Arabic letters → 'ar'
-    - Digits (e.g. '3andi', '7elwa') → 'franco'
-    - Otherwise → 'en'
-    """
-    if re.search(r'[\u0600-\u06FF]', text):
-        return 'ar'
-    if re.search(r'\d', text):
-        return 'franco'
-    return 'en'
-
 class ConversationAgent:
-    def __init__(self,
-                 model_name: str,
-                 embed_model: str,
-                 index_name: str):
-        # LLM & Memory clients
+    def __init__(self, model_name: str, embed_model: str, index_name: str):
+        # Initialize the LLM client
         self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
         self.model  = model_name
+        # Initialize session-scoped memory
         self.mem    = MemoryManager(embed_model, index_name)
 
-    def ask(self,
-            session_id: str,
-            user_message: str) -> str:
-        # 1) Retrieve the top-3 past notes for this client
+        # A single, rich system prompt:
+        self.system_prompt = (
+            "You are El Consulto, an empathic and professional psychiatrist AI. "
+            "In each reply, combine warmth and mental-health expertise with the specific details "
+            "you know about this client’s journey—past challenges, fears, and goals—"
+            "without ever labeling sessions or using technical headings. "
+            "Keep your responses concise (1–3 sentences) and, if helpful, offer a simple practical step. "
+            "If the user’s message is off-topic or asks for non-therapeutic content (code samples, API advice, "
+            "business strategy, etc.), please gently remind them: "
+            "\"We’re here in a therapy session—let’s refocus on how you’re feeling right now.\""
+        )
+
+    def ask(self, session_id: str, user_message: str) -> str:
+        # 1) Retrieve up to 3 relevant past notes for this session
         past_notes = self.mem.retrieve(session_id, user_message, k=3)
-        memory_block = "\n".join(past_notes) + "\n\n" if past_notes else ""
+        # Join them into a short memory block
+        memory_block = ""
+        if past_notes:
+            memory_block = "Your earlier notes: " + "; ".join(past_notes) + "\n\n"
 
-        # 2) Detect user’s language
-        lang = detect_language(user_message)
-
-        # 3) Choose a dialect-specific system prompt
-        if lang == 'ar':
-            sys_prompt = (
-                "أنت El Consulto، الطبيب النفسي الافتراضي باللهجة المصرية العامية. "
-                "في كل رد، امزج دفء القلب واحترافية الطب النفسي، مستخدمًا ما تعرفه عن المريض—"
-                "تجاربه الماضية ومخاوفه وطموحاته—بدون ذكر عدد الجلسات أو أي عناوين. "
-                "اجب بوضوح وباختصار، وقدّم خطوات بسيطة يمكن للمريض تطبيقها إذا رغب، "
-                "ولا تطل في الكلام إذا لم يُطلب مزيد من الشرح."
-            )
-        elif lang == 'franco':
-            sys_prompt = (
-                "Enta El Consulto, el doctor ennafsy el AI el byetkallem Franco-Arab. "
-                "Fe kol rad, estakhdem ton daafi w professional w weave fi ay details "
-                "3arafna 3anha men el mareed—experiences, fears, ambitions—men gheir ma "
-                "tsmaa el number beta3 el sessions. Rodd b jaww concise, w edee steps "
-                "3amelya law el mareed 3ayez yelzem, bass matekthamsh ktir."
-            )
-        else:
-            sys_prompt = (
-                "You are El Consulto, an empathic psychiatrist AI. "
-                "In each reply, combine a warm, professional tone with the specific details "
-                "you know about this client’s journey—past challenges, fears, and hopes—"
-                "without ever labeling sessions or using technical headings. "
-                "Keep answers concise (1–3 sentences), offer a practical next step when helpful, "
-                "and only expand if the patient asks for more detail."
-            )
-
-        # 4) Build the conversation
+        # 2) Build the messages with the system prompt + user
         messages = [
-            {"role": "system", "content": sys_prompt},
+            {"role": "system", "content": self.system_prompt},
             {"role": "user",   "content": memory_block + user_message}
         ]
 
-        # 5) Query the model
-        response = self.client.chat.completions.create(
+        # 3) Query the model
+        resp = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
             max_tokens_to_sample=250,
             temperature=0.7,
         )
-        answer = response.choices[0].message.content.strip()
+        answer = resp.choices[0].message.content.strip()
 
-        # 6) Save this turn in memory
-        #    (stores user_message and AI answer for future context)
+        # 4) Save this exchange into memory for future context
         self.mem.add(session_id, user_message, answer)
 
         return answer
