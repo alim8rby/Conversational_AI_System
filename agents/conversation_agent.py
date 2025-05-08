@@ -5,9 +5,8 @@ from memory.memory_manager import MemoryManager
 
 def detect_language(text: str) -> str:
     """
-    Rudimentary language detection:
     - Arabic letters → 'ar'
-    - Digits (e.g. '3andy') → 'franco'
+    - Digits (e.g. '3andi', '7elwa') → 'franco'
     - Otherwise → 'en'
     """
     if re.search(r'[\u0600-\u06FF]', text):
@@ -18,55 +17,52 @@ def detect_language(text: str) -> str:
 
 class ConversationAgent:
     def __init__(self, model_name: str, embed_model: str, index_name: str):
-        # Initialize LLM client
+        # LLM client
         self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
         self.model  = model_name
-        # Initialize session‐scoped memory
-        self.mem = MemoryManager(embed_model, index_name)
+        # Session‐scoped memory
+        self.mem    = MemoryManager(embed_model, index_name)
 
     def ask(self, session_id: str, user_message: str) -> str:
-        # 1) Retrieve this session’s past keys
+        # 1) Retrieve relevant memories for this session
         keys = self.mem.retrieve(session_id, user_message, k=3)
-        context = f"Context: {'; '.join(keys)}\n\n" if keys else ""
 
-        # 2) Auto-detect language
+        # 2) Auto‐detect language
         lang = detect_language(user_message)
 
-        # 3) Build a more nuanced system prompt per language
+        # 3) Rich, adaptive system prompt
         if lang == 'ar':
             sys_prompt = (
-                "أنت El Consulto، الطبيب النفسي الافتراضي، وتقدم دعمًا شخصيًا "
-                "مبنيًا على رحلات كل مريض الفريدة. عندما تتلقى رسالة من المريض، "
-                "امزج ما لديك من ذكريات عن سياقه (المذكورة في الـ Context) مع "
-                "حساسيتك للغة والثقافة المصرية العامية، واستجب بدفء ورحمة، "
-                "مُظهِرًا تفهمًا عميقًا لقصته وتجاربه. لا تطلب من المريض أن يجيب "
-                "أنت فقط أجب كالمعالج—بأسلوب لبق ومهني."
+                "أنت El Consulto، الطبيب النفسي الافتراضي باللهجة المصرية العامية. "
+                "في ردودك، امزج الأسلوب الدافئ والمهني مع "
+                "تفاصيل ما عرفته عن المريض في هذه الجلسة—"
+                "تجاربهم، مخاوفهم، وتطلعاتهم—دون الإشارة إلى عدد الجلسات أو التسميات. "
+                "استجب بدفء وتفهّم عميق، وقدم خطوات عملية أو تأملية تناسب سياقهم."
             )
         elif lang == 'franco':
             sys_prompt = (
                 "Enta El Consulto, el doctor ennafsy el AI el byetkallem Franco-Arab. "
-                "Enta tedee da3m shakhsiyy welaih, betistakhdem Context el session "
-                "3ashan tifham history el mareed. Rodd b tone daafi w mohandez, "
-                "you weave specific session notes into your reply, making each "
-                "response feel tailored to their story. Maa tdawrsh el mareed "
-                "yerd 3ala nafsu—enta enta el therapist."
+                "Weave fi ton daafi w professional, estakhdem ay tafaseel 3arafna 3anha "
+                "men el session—experiences, fears, goals—men gheir ma tetozer el session number. "
+                "Oddee derseyya amali w kalam ya3mel impact 3ala el mareed."
             )
         else:
             sys_prompt = (
-                "You are El Consulto’s empathic psychiatrist AI. You offer warm, "
-                "personalized support by weaving each client’s unique journey—"
-                "including their prior session notes (provided in Context)—into "
-                "every therapeutic response. Adapt your tone to be compassionate, "
-                "culturally sensitive, and entirely focused on the patient’s "
-                "needs. Never ask the patient to respond to themselves; always "
-                "reply as the therapist with clarity, respect, and genuine care."
+                "You are El Consulto’s empathic psychiatrist AI. "
+                "In every reply, combine a warm, professional tone with the specific details "
+                "you know about this client from their previous sessions—"
+                "their experiences, concerns, and goals—"
+                "without ever mentioning session counts or labels. "
+                "Offer insights and gentle guidance tailored to their unique journey."
             )
 
-        # 4) Build and send the chat
+        # 4) Build messages
         messages = [
             {"role": "system", "content": sys_prompt},
-            {"role": "user",   "content": context + user_message}
+            {"role": "user",   "content": user_message}
         ]
+
+        # 5) Query the model
         resp = self.client.chat.completions.create(
             model=self.model,
             messages=messages,
@@ -75,12 +71,12 @@ class ConversationAgent:
         )
         answer = resp.choices[0].message.content
 
-        # 5) Save this exchange in memory
+        # 6) Save this exchange in memory
         self.mem.add(session_id, user_message, answer)
         return answer
 
 if __name__ == "__main__":
-    # Quick manual test
+    # Quick manual test (English)
     agent = ConversationAgent(
         model_name="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
         embed_model="togethercomputer/m2-bert-80M-8k-retrieval",
