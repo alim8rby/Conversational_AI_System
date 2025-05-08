@@ -1,16 +1,32 @@
-from langchain.vectorstores import Pinecone # type: ignore
-from langchain.embeddings.openai import OpenAIEmbeddings # type: ignore
+# memory/memory_manager.py
+import os
+from together import Together
 
 class MemoryManager:
-    def __init__(self, index_name: str, api_key: str):
-        # initialize embeddings + Pinecone store
-        self.embeddings = OpenAIEmbeddings(openai_api_key=api_key)
-        self.store = Pinecone.from_existing_index(index_name, self.embeddings)
+    def __init__(self, embed_model: str):
+        self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+        self.embed_model = embed_model
 
     def add(self, key: str, text: str):
-        # store a new memory
-        self.store.add_texts([text], metadatas=[{"key": key}])
+        # Generate an embedding for `text`
+        resp = self.client.embeddings.create(
+            model=self.embed_model,    # e.g. "togethercomputer/m2-bert-80M-8k-retrieval"
+            input=text
+        )
+        vector = resp.data[0].embedding
+        # TODO: store `vector` in your vector DB under `key`
 
     def retrieve(self, query: str, k: int = 3):
-        # fetch similar memories
-        return self.store.similarity_search(query, k)
+        # Create query embedding
+        resp = self.client.embeddings.create(
+            model=self.embed_model,
+            input=query
+        )
+        qvec = resp.data[0].embedding
+        # TODO: use your vector DB to find the top-k most similar entries to qvec
+        return []  # return retrieved items
+
+if __name__ == "__main__":
+    mm = MemoryManager("togethercomputer/m2-bert-80M-8k-retrieval")
+    mm.add("session1", "Patient’s childhood fear of small rooms.")
+    print("Retrieve stub:", mm.retrieve("small rooms fear"))
