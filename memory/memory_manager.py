@@ -1,18 +1,18 @@
 # memory/memory_manager.py
 import os
-import pinecone
+from pinecone import Pinecone
 from together import Together
 
 class MemoryManager:
     def __init__(self, embed_model: str, index_name: str):
-        # Init Together for embeddings
+        # Initialize Together for embeddings
         self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
-        # Init Pinecone
-        pinecone.init(
-            api_key=os.getenv("PINECONE_API_KEY"),
-            environment=os.getenv("PINECONE_ENV")
-        )
-        self.index = pinecone.Index(index_name)
+
+        # Initialize Pinecone client (reads your env var for key)
+        self.pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+        # Connect to your existing index
+        self.index = self.pinecone.Index(index_name)
+
         self.embed_model = embed_model
 
     def add(self, key: str, text: str):
@@ -22,7 +22,7 @@ class MemoryManager:
             input=text
         )
         vector = resp.data[0].embedding
-        # 2) Upsert into Pinecone
+        # 2) Upsert into your Pinecone index
         self.index.upsert([(key, vector)])
 
     def retrieve(self, query: str, k: int = 3):
@@ -33,9 +33,9 @@ class MemoryManager:
         )
         qvec = resp.data[0].embedding
         # 2) Query Pinecone
-        results = self.index.query(qvec, top_k=k, include_metadata=True)
-        # 3) Return the texts or IDs
-        return [match['id'] for match in results['matches']]
+        results = self.index.query(qvec, top_k=k, include_values=False)
+        # 3) Return the stored keys
+        return [match.id for match in results.matches]
 
 if __name__ == "__main__":
     mm = MemoryManager(
