@@ -1,6 +1,5 @@
-# agents/conversation_agent.py
 import os
-from together import Together, HUMAN_PROMPT, AI_PROMPT
+from together import Together
 
 class ConversationAgent:
     def __init__(self, model_name: str):
@@ -8,10 +7,9 @@ class ConversationAgent:
         self.model = model_name
 
     def ask(self, user_message: str) -> str:
-        prompt = f"{HUMAN_PROMPT}{user_message}{AI_PROMPT}"
         resp = self.client.chat.completions.create(
             model=self.model,
-            prompt=prompt,
+            messages=[{"role": "user", "content": user_message}],
             max_tokens_to_sample=300,
             temperature=0.7,
         )

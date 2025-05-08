@@ -1,32 +1,46 @@
 # memory/memory_manager.py
 import os
+import pinecone
 from together import Together
 
 class MemoryManager:
-    def __init__(self, embed_model: str):
+    def __init__(self, embed_model: str, index_name: str):
+        # Init Together for embeddings
         self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+        # Init Pinecone
+        pinecone.init(
+            api_key=os.getenv("PINECONE_API_KEY"),
+            environment=os.getenv("PINECONE_ENV")
+        )
+        self.index = pinecone.Index(index_name)
         self.embed_model = embed_model
 
     def add(self, key: str, text: str):
-        # Generate an embedding for `text`
+        # 1) Get embedding from Together
         resp = self.client.embeddings.create(
-            model=self.embed_model,    # e.g. "togethercomputer/m2-bert-80M-8k-retrieval"
+            model=self.embed_model,
             input=text
         )
         vector = resp.data[0].embedding
-        # TODO: store `vector` in your vector DB under `key`
+        # 2) Upsert into Pinecone
+        self.index.upsert([(key, vector)])
 
     def retrieve(self, query: str, k: int = 3):
-        # Create query embedding
+        # 1) Embed the query
         resp = self.client.embeddings.create(
             model=self.embed_model,
             input=query
         )
         qvec = resp.data[0].embedding
-        # TODO: use your vector DB to find the top-k most similar entries to qvec
-        return []  # return retrieved items
+        # 2) Query Pinecone
+        results = self.index.query(qvec, top_k=k, include_metadata=True)
+        # 3) Return the texts or IDs
+        return [match['id'] for match in results['matches']]
 
 if __name__ == "__main__":
-    mm = MemoryManager("togethercomputer/m2-bert-80M-8k-retrieval")
-    mm.add("session1", "Patient’s childhood fear of small rooms.")
-    print("Retrieve stub:", mm.retrieve("small rooms fear"))
+    mm = MemoryManager(
+        embed_model="togethercomputer/m2-bert-80M-8k-retrieval",
+        index_name="wss-ai-memory"
+    )
+    mm.add("session1", "Patient described fear of small rooms.")
+    print("Retrieved keys:", mm.retrieve("small rooms fear"))
