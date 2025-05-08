@@ -4,7 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>El Consulto Chat</title>
-  <!-- …styles… -->
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    #chat { max-width: 600px; margin: auto; }
+    .msg { padding: .5rem; border-radius: .3rem; margin-bottom: .5rem; }
+    .user { background: #f0f0f0; text-align: right; }
+    .bot  { background: #d0ebff; text-align: left; }
+    #input { width: calc(100% - 100px); padding: .5rem; }
+    #send  { padding: .5rem 1rem; }
+  </style>
 </head>
 <body>
   <div id="chat"></div>
@@ -13,10 +21,10 @@
     <button id="send">Send</button>
   </div>
   <script>
-    // 1) generate a per‐page session ID
+    // Generate a per-page session ID
     const sessionId = crypto.randomUUID();
 
-    const chat = document.getElementById('chat');
+    const chat  = document.getElementById('chat');
     const input = document.getElementById('input');
     const send  = document.getElementById('send');
 
@@ -36,7 +44,7 @@
       try {
         const res = await fetch('/chat', {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session: sessionId, message: msg })
         });
         const { reply } = await res.json();
@@ -47,7 +55,7 @@
     }
 
     send.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', e => { if (e.key==='Enter') sendMessage(); });
+    input.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
   </script>
 </body>
 </html>
