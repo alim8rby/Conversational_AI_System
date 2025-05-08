@@ -33,7 +33,12 @@ class MemoryManager:
         )
         qvec = resp.data[0].embedding
         # 2) Query Pinecone
-        results = self.index.query(qvec, top_k=k, include_values=False)
+        results = self.index.query(
+            vector=qvec,
+            top_k=k,
+            include_values=False,
+            include_metadata=False
+        )
         # 3) Return the stored keys
         return [match.id for match in results.matches]
 
