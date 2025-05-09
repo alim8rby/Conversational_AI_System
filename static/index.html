@@ -5,25 +5,49 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>El Consulto Chat</title>
   <style>
-    body { font-family: sans-serif; margin: 2rem; }
-    #chat { max-width: 600px; margin: auto; }
-    .msg { padding: .5rem; border-radius: .3rem; margin-bottom: .5rem; }
-    .user { background: #f0f0f0; text-align: right; }
-    .bot  { background: #d0ebff; text-align: left; }
-    #input { width: calc(100% - 100px); padding: .5rem; }
-    #send  { padding: .5rem 1rem; }
+    body { font-family: sans-serif; margin:0; overflow:hidden; }
+    #greeting {
+      position:fixed; top:0;left:0;width:100%;height:100%;
+      background:#fff; display:flex; align-items:center;justify-content:center;
+      flex-direction:column; z-index:1000; animation:fadeOut 2s ease 3s forwards;
+    }
+    @keyframes fadeOut { to { opacity:0; visibility:hidden; } }
+    #logo { width:150px; margin-bottom:1rem; animation:spin 3s linear infinite; }
+    @keyframes spin { to{ transform:rotate(360deg);} }
+    #chat-ui { display:none; flex-direction:column; height:100vh; }
+    #chat-ui.active { display:flex; }
+    #chat { flex:1; overflow:auto; padding:1rem; }
+    .msg { padding:.5rem; border-radius:.3rem; margin-bottom:.5rem; opacity:0; animation:fadeIn .5s forwards; }
+    @keyframes fadeIn { to { opacity:1; } }
+    .user { background:#f0f0f0; text-align:right; }
+    .bot  { background:#d0ebff; text-align:left; }
+    #inputRow { display:flex; padding:1rem; border-top:1px solid #ccc; }
+    #input { flex:1; padding:.5rem; }
+    #send  { padding:.5rem 1rem; }
   </style>
 </head>
 <body>
-  <div id="chat"></div>
-  <div style="display:flex; max-width:600px; margin:1rem auto;">
-    <input id="input" placeholder="Type your message…" />
-    <button id="send">Send</button>
+  <!-- Greeting overlay -->
+  <div id="greeting">
+    <img id="logo" src="logo.png" alt="El Consulto Logo"/>
+    <h1>Welcome to El Consulto</h1>
+    <p>Your safe space begins now…</p>
   </div>
-  <script>
-    // Generate a per-page session ID
-    const sessionId = crypto.randomUUID();
 
+  <!-- Chat UI -->
+  <div id="chat-ui">
+    <div id="chat"></div>
+    <div id="inputRow">
+      <input id="input" placeholder="Type your message…" />
+      <button id="send">Send</button>
+    </div>
+  </div>
+
+  <script>
+    // After greeting fades, show chat
+    setTimeout(() => document.getElementById('chat-ui').classList.add('active'), 3500);
+
+    const sessionId = crypto.randomUUID();
     const chat  = document.getElementById('chat');
     const input = document.getElementById('input');
     const send  = document.getElementById('send');
@@ -42,20 +66,20 @@
       appendMsg(msg, 'user');
       input.value = '';
       try {
-        const res = await fetch('/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session: sessionId, message: msg })
+        const res = await fetch('/chat',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({session:sessionId, message:msg})
         });
-        const { reply } = await res.json();
-        appendMsg(reply, 'bot');
-      } catch (e) {
-        appendMsg('Error: ' + e.message, 'bot');
+        const {reply} = await res.json();
+        appendMsg(reply,'bot');
+      } catch(e){
+        appendMsg('Error: '+e.message,'bot');
       }
     }
 
     send.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+    input.addEventListener('keypress', e=>{ if(e.key==='Enter') sendMessage(); });
   </script>
 </body>
 </html>
