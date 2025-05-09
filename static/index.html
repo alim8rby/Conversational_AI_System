@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>El Consulto Chat</title>
   <style>
-    /* — Background gradient animation — */
+    /* Animated gradient background */
     body {
       margin: 0;
       height: 100vh;
@@ -24,150 +24,96 @@
       100% { background-position:   0% 50%; }
     }
 
-    /* — Greeting Overlay — */
+    /* Greeting Overlay */
     #greeting {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.95);
+      position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.95);
       color: #0ff;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
       z-index: 1000;
       animation: fadeOut 2s ease 3s forwards;
     }
-    @keyframes fadeOut {
-      to { opacity: 0; visibility: hidden; }
-    }
+    @keyframes fadeOut { to { opacity:0; visibility:hidden; } }
     #logo {
-      width: 120px;
-      margin-bottom: 1rem;
+      width: 120px; margin-bottom: 1rem;
       filter: drop-shadow(0 0 10px #0ff);
       animation: pulse 2s ease-in-out infinite;
     }
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50%      { transform: scale(1.1); }
-    }
-    #greeting h1 {
-      font-size: 2rem;
-      margin: 0;
-      text-shadow: 0 0 10px #0ff;
-    }
-    #greeting p {
-      margin-top: 0.5rem;
-      font-size: 1rem;
-      color: #aaa;
-    }
+    @keyframes pulse { 0%,100%{transform:scale(1);}50%{transform:scale(1.1);} }
+    #greeting h1 { font-size:2rem; text-shadow:0 0 10px #0ff; margin:0; }
+    #greeting p { margin-top: .5rem; color:#aaa; }
 
-    /* — Chat container (glassmorphic) — */
+    /* Chat UI container */
     #chat-ui {
-      display: none;
-      flex-direction: column;
-      width: 90vw;
-      max-width: 600px;
-      height: 90vh;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 0 30px rgba(0,255,255,0.2);
-      overflow: hidden;
+      display: none; flex-direction: column;
+      width: 90vw; max-width:600px; height:90vh;
+      background: rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.2);
+      border-radius:12px; backdrop-filter:blur(10px);
+      box-shadow:0 0 30px rgba(0,255,255,0.2);
+      overflow:hidden;
     }
-    #chat-ui.active {
-      display: flex;
-    }
+    #chat-ui.active { display:flex; }
 
-    /* — Messages area — */
+    /* Messages */
     #chat {
-      flex: 1;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
+      flex:1; padding:1rem;
+      display:flex; flex-direction:column;
+      overflow-y:auto;
     }
     .msg {
-      max-width: 75%;
-      padding: .75rem 1rem;
-      margin: .3rem 0;
-      border-radius: 15px;
-      position: relative;
-      opacity: 0;
-      animation: slideIn 0.4s forwards;
+      max-width:75%; padding:.75rem 1rem;
+      margin:.3rem 0; border-radius:15px;
+      position:relative; opacity:0;
+      animation:slideIn .4s forwards;
     }
     @keyframes slideIn {
-      from { transform: translateY(20px); opacity: 0; }
-      to   { transform: translateY(0);  opacity: 1; }
+      from { transform:translateY(20px); opacity:0; }
+      to   { transform:translateY(0);     opacity:1; }
     }
-    .user {
-      align-self: flex-end;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid #0ff;
-      color: #fff;
-    }
-    .bot {
-      align-self: flex-start;
-      background: rgba(0,255,255,0.1);
-      border: 1px solid #0ff;
-      color: #fff;
-    }
+    .user { align-self:flex-end; background:rgba(255,255,255,0.1); border:1px solid #0ff; color:#fff; }
+    .bot  { align-self:flex-start; background:rgba(0,255,255,0.1); border:1px solid #0ff; color:#fff; }
 
-    /* — Input row — */
+    /* Input Row */
     #inputRow {
-      display: flex;
-      border-top: 1px solid rgba(255,255,255,0.2);
-      padding: .5rem;
+      display:flex; border-top:1px solid rgba(255,255,255,0.2);
+      padding:.5rem;
     }
     #input {
-      flex: 1;
-      padding: .6rem;
-      border-radius: 8px;
-      border: 1px solid #0ff;
-      background: transparent;
-      color: #fff;
-      outline: none;
-      transition: border-color .3s;
+      flex:1; padding:.6rem; border-radius:8px;
+      border:1px solid #0ff; background:transparent;
+      color:#fff; outline:none; transition:border-color .3s;
     }
-    #input:focus {
-      border-color: #f0f;
-    }
+    #input:focus { border-color:#f0f; }
     #send {
-      margin-left: .5rem;
-      padding: .6rem 1rem;
-      border: 1px solid #0ff;
-      background: transparent;
-      color: #0ff;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background .3s, color .3s;
+      margin-left:.5rem; padding:.6rem 1rem;
+      border:1px solid #0ff; background:transparent;
+      color:#0ff; border-radius:8px; cursor:pointer;
+      font-weight:bold; transition:background .3s,color .3s;
     }
-    #send:hover {
-      background: #0ff;
-      color: #000;
-    }
+    #send:hover { background:#0ff; color:#000; }
   </style>
 </head>
 <body>
   <!-- Greeting Screen -->
   <div id="greeting">
-    <img id="logo" src="logo.png" alt="El Consulto" />
+    <img id="logo" src="logo.png" alt="El Consulto"/>
     <h1>Welcome to El Consulto</h1>
     <p>Your safe space begins now…</p>
   </div>
 
-  <!-- Main Chat UI -->
+  <!-- Chat UI -->
   <div id="chat-ui">
     <div id="chat"></div>
     <div id="inputRow">
-      <input id="input" placeholder="Type your message…" autocomplete="off" />
+      <input id="input" placeholder="Type your message…" autocomplete="off"/>
       <button id="send">Send</button>
     </div>
   </div>
 
   <script>
-    // Reveal chat UI after greeting animation
+    // After greeting, show chat UI
     setTimeout(() => {
       document.getElementById('chat-ui').classList.add('active');
     }, 3500);
@@ -185,11 +131,11 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    async function sendMessage(msgText) {
-      const msg = msgText !== undefined ? msgText : input.value.trim();
+    async function sendMessage() {
+      const msg = input.value.trim();
       if (!msg) return;
       appendMsg(msg, 'user');
-      if (msgText === undefined) input.value = '';
+      input.value = '';
 
       try {
         const res = await fetch('/chat', {
@@ -197,14 +143,18 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session: sessionId, message: msg })
         });
-        const { reply } = await res.json();
+        const { reply, audio } = await res.json();
         appendMsg(reply, 'bot');
+        if (audio) {
+          const player = new Audio(audio);
+          player.play();
+        }
       } catch (e) {
         appendMsg('Error: ' + e.message, 'bot');
       }
     }
 
-    sendBtn.addEventListener('click', () => sendMessage());
+    sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keypress', e => {
       if (e.key === 'Enter') sendMessage();
     });

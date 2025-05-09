@@ -1,27 +1,18 @@
 # voice/voice_engine.py
+
 import os
-from together import Together
+from gtts import gTTS
 
 class VoiceEngine:
-    def __init__(self):
-        # You could later add TTS or emotion‐detection here
-        self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+    def __init__(self, lang: str = "en"):
+        self.lang = lang
 
-    def text_to_speech(self, text: str, filename: str):
+    def text_to_speech(self, text: str, filename: str) -> str:
         """
-        Stub for TTS—Together doesn’t provide TTS,
-        but we keep the key available for future services.
+        Generate an MP3 of `text` in the chosen language,
+        save to `filename` (creating dirs as needed), and return the path.
         """
-        with open(filename, "wb") as f:
-            f.write(b"")
-
-    def analyze_emotion(self, audio_path: str) -> dict:
-        """
-        Stub for emotion analysis via audio.
-        """
-        return {"valence": 0.0, "arousal": 0.0}
-
-if __name__ == "__main__":
-    ve = VoiceEngine()
-    ve.text_to_speech("Hello, soul.", "out.wav")
-    print("Voice stub ran.")
+        tts = gTTS(text=text, lang=self.lang)
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        tts.save(filename)
+        return filename
