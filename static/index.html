@@ -12,11 +12,11 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #53354a);
-      background-size: 400% 400%;
-      animation: gradientBG 15s ease infinite;
-      font-family: "Segoe UI", sans-serif;
-      overflow: hidden;
+      background: linear-gradient(-45deg,#1a1a2e,#16213e,#0f3460,#53354a);
+      background-size:400% 400%;
+      animation:gradientBG 15s ease infinite;
+      font-family:"Segoe UI",sans-serif;
+      overflow:hidden;
     }
     @keyframes gradientBG {
       0%   { background-position:   0% 50%; }
@@ -24,33 +24,33 @@
       100% { background-position:   0% 50%; }
     }
 
-    /* Greeting Overlay */
+    /* Greeting overlay */
     #greeting {
-      position: fixed; top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.95);
-      color: #0ff;
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      z-index: 1000;
-      animation: fadeOut 2s ease 3s forwards;
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.95);
+      color:#0ff;
+      display:flex;flex-direction:column;
+      justify-content:center;align-items:center;
+      z-index:1000;
+      animation:fadeOut 2s ease 3s forwards;
     }
-    @keyframes fadeOut { to { opacity:0; visibility:hidden; } }
+    @keyframes fadeOut { to { opacity:0;visibility:hidden;} }
     #logo {
-      width: 120px; margin-bottom: 1rem;
-      filter: drop-shadow(0 0 10px #0ff);
-      animation: pulse 2s ease-in-out infinite;
+      width:120px;margin-bottom:1rem;
+      filter:drop-shadow(0 0 10px #0ff);
+      animation:pulse 2s ease-in-out infinite;
     }
-    @keyframes pulse { 0%,100%{transform:scale(1);}50%{transform:scale(1.1);} }
+    @keyframes pulse {0%,100%{transform:scale(1);}50%{transform:scale(1.1);} }
     #greeting h1 { font-size:2rem; text-shadow:0 0 10px #0ff; margin:0; }
-    #greeting p { margin-top: .5rem; color:#aaa; }
+    #greeting p  { margin-top:.5rem; color:#aaa; }
 
-    /* Chat UI container */
+    /* Chat UI */
     #chat-ui {
-      display: none; flex-direction: column;
-      width: 90vw; max-width:600px; height:90vh;
-      background: rgba(255,255,255,0.05);
+      display:none;flex-direction:column;
+      width:90vw;max-width:600px;height:90vh;
+      background:rgba(255,255,255,0.05);
       border:1px solid rgba(255,255,255,0.2);
-      border-radius:12px; backdrop-filter:blur(10px);
+      border-radius:12px;backdrop-filter:blur(10px);
       box-shadow:0 0 30px rgba(0,255,255,0.2);
       overflow:hidden;
     }
@@ -58,68 +58,60 @@
 
     /* Messages */
     #chat {
-      flex:1; padding:1rem;
-      display:flex; flex-direction:column;
+      flex:1;padding:1rem;
+      display:flex;flex-direction:column;
       overflow-y:auto;
     }
     .msg {
-      max-width:75%; padding:.75rem 1rem;
-      margin:.3rem 0; border-radius:15px;
-      position:relative; opacity:0;
-      animation:slideIn .4s forwards;
-      color: #fff;
+      max-width:75%;padding:.75rem 1rem;
+      margin:.3rem 0;border-radius:15px;
+      opacity:0;animation:slideIn .4s forwards;
+      color:#fff;position:relative;
     }
     @keyframes slideIn {
-      from { transform:translateY(20px); opacity:0; }
-      to   { transform:translateY(0);     opacity:1; }
+      from{transform:translateY(20px);opacity:0;}
+      to  {transform:translateY(0);    opacity:1;}
     }
-    .user {
-      align-self:flex-end;
-      background:rgba(255,255,255,0.1);
-      border:1px solid #0ff;
-    }
-    .bot {
-      align-self:flex-start;
-      background:rgba(0,255,255,0.1);
-      border:1px solid #0ff;
-    }
+    .user { align-self:flex-end;background:rgba(255,255,255,0.1);border:1px solid #0ff;}
+    .bot  { align-self:flex-start;background:rgba(0,255,255,0.1);border:1px solid #0ff;}
 
-    /* Input Row */
+    /* Input row */
     #inputRow {
-      display:flex; align-items:center;
+      display:flex;align-items:center;
       border-top:1px solid rgba(255,255,255,0.2);
       padding:.5rem;
     }
     #record {
-      background:transparent; border:none;
-      color:#0ff; font-size:1.5rem; cursor:pointer;
+      background:transparent;border:none;
+      color:#0ff;font-size:1.5rem;cursor:pointer;
       margin-right:.5rem;
     }
-    #record.recording { color:#f00; } /* red when recording */
+    #record.recording { color:#f00; }
     #input {
-      flex:1; padding:.6rem; border-radius:8px;
-      border:1px solid #0ff; background:transparent;
-      color:#fff; outline:none; transition:border-color .3s;
+      flex:1;padding:.6rem;border-radius:8px;
+      border:1px solid #0ff;background:transparent;
+      color:#fff;outline:none;transition:border-color .3s;
     }
     #input:focus { border-color:#f0f; }
     #send {
-      margin-left:.5rem; padding:.6rem 1rem;
-      border:1px solid #0ff; background:transparent;
-      color:#0ff; border-radius:8px; cursor:pointer;
-      font-weight:bold; transition:background .3s,color .3s;
+      margin-left:.5rem;padding:.6rem 1rem;
+      border:1px solid #0ff;background:transparent;
+      color:#0ff;border-radius:8px;
+      cursor:pointer;font-weight:bold;
+      transition:background .3s,color .3s;
     }
-    #send:hover { background:#0ff; color:#000; }
+    #send:hover { background:#0ff;color:#000; }
   </style>
 </head>
 <body>
-  <!-- Greeting Screen -->
+  <!-- Greeting -->
   <div id="greeting">
-    <img id="logo" src="logo.png" alt="El Consulto"/>
+    <img id="logo" src="/static/logo.png" alt="El Consulto"/>
     <h1>Welcome to El Consulto</h1>
     <p>Your safe space begins now…</p>
   </div>
 
-  <!-- Main Chat UI -->
+  <!-- Chat UI -->
   <div id="chat-ui">
     <div id="chat"></div>
     <div id="inputRow">
@@ -130,86 +122,71 @@
   </div>
 
   <script>
-    // Show chat once greeting finishes
-    setTimeout(() => {
+    // Reveal chat UI after greeting
+    setTimeout(()=>{
       document.getElementById('chat-ui').classList.add('active');
-    }, 3500);
+    },3500);
 
-    // Core elements
     const sessionId = crypto.randomUUID();
     const chat      = document.getElementById('chat');
     const input     = document.getElementById('input');
     const sendBtn   = document.getElementById('send');
     const recordBtn = document.getElementById('record');
 
-    // Append message bubble
     function appendMsg(text, cls) {
       const d = document.createElement('div');
-      d.className = 'msg ' + cls;
+      d.className = 'msg '+cls;
       d.textContent = text;
       chat.appendChild(d);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    // Send a text message (or from STT)
     async function sendMessage(msgText) {
-      const msg = msgText !== undefined ? msgText : input.value.trim();
-      if (!msg) return;
-      appendMsg(msg, 'user');
-      if (msgText === undefined) input.value = '';
+      const msg = msgText!==undefined ? msgText : input.value.trim();
+      if(!msg) return;
+      appendMsg(msg,'user');
+      if(msgText===undefined) input.value='';
 
       try {
-        const res = await fetch('/chat', {
+        const res = await fetch('/chat',{
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({session: sessionId, message: msg})
+          body:JSON.stringify({session:sessionId,message:msg})
         });
         const { reply, audio } = await res.json();
-        appendMsg(reply, 'bot');
-        if (audio) {
-          new Audio(audio).play();
+        appendMsg(reply,'bot');
+        if(audio){
+          // cache bust so new reply always plays
+          const player = new Audio(audio+'?t='+Date.now());
+          player.play();
         }
-      } catch(e) {
+      }catch(e){
         appendMsg('Error: '+e.message,'bot');
       }
     }
 
-    // Event listeners
-    sendBtn.addEventListener('click', () => sendMessage());
-    input.addEventListener('keypress', e => { if (e.key==='Enter') sendMessage(); });
+    sendBtn.addEventListener('click',()=>sendMessage());
+    input.addEventListener('keypress',e=>{ if(e.key==='Enter') sendMessage(); });
 
-    // Web Speech API for STT
-    let recognition, recording = false;
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRec();
-      recognition.lang = 'en-US';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        recording = true;
-        recordBtn.classList.add('recording');
+    // STT via Web Speech API
+    let recognition, recording=false;
+    if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+      const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+      recognition = new SR();
+      recognition.lang='en-US';
+      recognition.interimResults=false;
+      recognition.maxAlternatives=1;
+      recognition.onstart=()=>{ recording=true; recordBtn.classList.add('recording'); };
+      recognition.onend  =()=>{ recording=false; recordBtn.classList.remove('recording'); };
+      recognition.onresult=e=>{
+        const text = e.results[0][0].transcript;
+        sendMessage(text);
       };
-      recognition.onend = () => {
-        recording = false;
-        recordBtn.classList.remove('recording');
-      };
-      recognition.onresult = event => {
-        const transcript = event.results[0][0].transcript;
-        sendMessage(transcript);
-      };
-
-      recordBtn.addEventListener('click', () => {
-        if (!recording) {
-          recognition.start();
-        } else {
-          recognition.stop();
-        }
+      recordBtn.addEventListener('click',()=>{
+        if(!recording) recognition.start(); else recognition.stop();
       });
     } else {
-      // No STT support
-      recordBtn.style.display = 'none';
+      recordBtn.style.display='none';
     }
   </script>
 </body>
