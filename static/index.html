@@ -67,19 +67,35 @@
       margin:.3rem 0; border-radius:15px;
       position:relative; opacity:0;
       animation:slideIn .4s forwards;
+      color: #fff;
     }
     @keyframes slideIn {
       from { transform:translateY(20px); opacity:0; }
       to   { transform:translateY(0);     opacity:1; }
     }
-    .user { align-self:flex-end; background:rgba(255,255,255,0.1); border:1px solid #0ff; color:#fff; }
-    .bot  { align-self:flex-start; background:rgba(0,255,255,0.1); border:1px solid #0ff; color:#fff; }
+    .user {
+      align-self:flex-end;
+      background:rgba(255,255,255,0.1);
+      border:1px solid #0ff;
+    }
+    .bot {
+      align-self:flex-start;
+      background:rgba(0,255,255,0.1);
+      border:1px solid #0ff;
+    }
 
     /* Input Row */
     #inputRow {
-      display:flex; border-top:1px solid rgba(255,255,255,0.2);
+      display:flex; align-items:center;
+      border-top:1px solid rgba(255,255,255,0.2);
       padding:.5rem;
     }
+    #record {
+      background:transparent; border:none;
+      color:#0ff; font-size:1.5rem; cursor:pointer;
+      margin-right:.5rem;
+    }
+    #record.recording { color:#f00; } /* red when recording */
     #input {
       flex:1; padding:.6rem; border-radius:8px;
       border:1px solid #0ff; background:transparent;
@@ -103,26 +119,30 @@
     <p>Your safe space begins now…</p>
   </div>
 
-  <!-- Chat UI -->
+  <!-- Main Chat UI -->
   <div id="chat-ui">
     <div id="chat"></div>
     <div id="inputRow">
+      <button id="record">🎤</button>
       <input id="input" placeholder="Type your message…" autocomplete="off"/>
       <button id="send">Send</button>
     </div>
   </div>
 
   <script>
-    // After greeting, show chat UI
+    // Show chat once greeting finishes
     setTimeout(() => {
       document.getElementById('chat-ui').classList.add('active');
     }, 3500);
 
+    // Core elements
     const sessionId = crypto.randomUUID();
     const chat      = document.getElementById('chat');
     const input     = document.getElementById('input');
     const sendBtn   = document.getElementById('send');
+    const recordBtn = document.getElementById('record');
 
+    // Append message bubble
     function appendMsg(text, cls) {
       const d = document.createElement('div');
       d.className = 'msg ' + cls;
@@ -131,33 +151,66 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    async function sendMessage() {
-      const msg = input.value.trim();
+    // Send a text message (or from STT)
+    async function sendMessage(msgText) {
+      const msg = msgText !== undefined ? msgText : input.value.trim();
       if (!msg) return;
       appendMsg(msg, 'user');
-      input.value = '';
+      if (msgText === undefined) input.value = '';
 
       try {
         const res = await fetch('/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session: sessionId, message: msg })
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({session: sessionId, message: msg})
         });
         const { reply, audio } = await res.json();
         appendMsg(reply, 'bot');
         if (audio) {
-          const player = new Audio(audio);
-          player.play();
+          new Audio(audio).play();
         }
-      } catch (e) {
-        appendMsg('Error: ' + e.message, 'bot');
+      } catch(e) {
+        appendMsg('Error: '+e.message,'bot');
       }
     }
 
-    sendBtn.addEventListener('click', sendMessage);
-    input.addEventListener('keypress', e => {
-      if (e.key === 'Enter') sendMessage();
-    });
+    // Event listeners
+    sendBtn.addEventListener('click', () => sendMessage());
+    input.addEventListener('keypress', e => { if (e.key==='Enter') sendMessage(); });
+
+    // Web Speech API for STT
+    let recognition, recording = false;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRec();
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = () => {
+        recording = true;
+        recordBtn.classList.add('recording');
+      };
+      recognition.onend = () => {
+        recording = false;
+        recordBtn.classList.remove('recording');
+      };
+      recognition.onresult = event => {
+        const transcript = event.results[0][0].transcript;
+        sendMessage(transcript);
+      };
+
+      recordBtn.addEventListener('click', () => {
+        if (!recording) {
+          recognition.start();
+        } else {
+          recognition.stop();
+        }
+      });
+    } else {
+      // No STT support
+      recordBtn.style.display = 'none';
+    }
   </script>
 </body>
 </html>

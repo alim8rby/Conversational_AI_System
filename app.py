@@ -8,13 +8,13 @@ from voice.voice_engine import VoiceEngine
 app = Flask(__name__, static_folder="static")
 CORS(app)
 
-# Initialize LLM agent and VoiceEngine
+# Initialize the AI agent and VoiceEngine
 agent = ConversationAgent(
     model_name="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
     embed_model="togethercomputer/m2-bert-80M-8k-retrieval",
     index_name="wss-ai-memory"
 )
-voice = VoiceEngine(lang="en")
+voice = VoiceEngine(lang="en")  # or 'ar' / 'franco' if you want to switch
 
 @app.route("/")
 def index():
@@ -29,10 +29,10 @@ def chat():
     if not session or not user_msg:
         return jsonify({"error": "Session ID and message are required."}), 400
 
-    # 1) Get the AI response
+    # 1) Generate AI reply
     reply = agent.ask(session, user_msg)
 
-    # 2) Generate TTS MP3 for this session
+    # 2) Synthesize voice and save under static/tts/{session}.mp3
     audio_path = f"static/tts/{session}.mp3"
     voice.text_to_speech(reply, audio_path)
     audio_url = f"/static/tts/{session}.mp3"
