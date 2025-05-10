@@ -21,91 +21,79 @@ class ConversationAgent:
                  model_name: str,
                  embed_model: str,
                  index_name: str):
-        # LLM & RAG memory
+        # LLM & RAG
         self.client   = Together(api_key=os.getenv("TOGETHER_API_KEY"))
         self.model    = model_name
         self.mem      = MemoryManager(embed_model, index_name)
 
         # Structured interview
         self.interviewer = InterviewManager()
-        self.awaiting    = {}  # session_id -> last asked section
-
-        # In-memory history to prevent repeats
-        self.histories   = {}
+        self.awaiting    = {}      # session_id -> last section asked
+        self.histories   = {}      # session_id -> conversation history
 
     def ask(self, session_id: str, user_message: str) -> str:
-        # --- 1) Language detection & prompts setup ---
+        # --- 1) Language detection & fallback strings ---
         lang = detect_language(user_message)
         if lang == 'ar':
-            sys_base = (
-                "أنت El Consulto، الطبيب النفسي الافتراضي باللهجة المصرية العامية. "
-                "استخدم ما تعرفه عن المريض—تجاربه، مخاوفه وطموحاته—في كل رد، "
-                "بدون ذكر عدد الجلسات أو القوائم. "
-                "إذا واجهت خطأ تقنيًّا، اعتذر واطلب إعادة المحاولة."
-            )
-            greet_first = "أهلاً! أنا El Consulto، طبيبك الافتراضي."
-            thank_you   = "شكرًا لمشاركتك."
-            error_reply = "عذرًا، حصلت مشكلة فنية. هل يمكنك المحاولة مرة أخرى؟"
+            clarifier = "أسمع ضحكتك، هل تشعر بالراحة أم أنك متوتر؟ شاركني ما يدور في بالك."
         elif lang == 'franco':
-            sys_base = (
-                "Enta El Consulto, el doctor ennafsy el AI el byetkallem Franco-Arab. "
-                "Weave fi ay tafaseel 3arafna 3anha men el mareed—"
-                "experiences, fears, ambitions—men gheir ma tsmaa el sessions. "
-                "Law feh moshkela, et2ezir we 7awel tani."
-            )
-            greet_first = "Hey! Ana El Consulto, el doctor ennafsy beta3ak."
-            thank_you   = "Shokran 3ala el mosharaka."
-            error_reply = "M3lesh, fe moshkela tehnia. Momken t7awel tani?"
+            clarifier = "Basma3 d7ktak—enta mabsout aw motawater? 2ol lyya aktar 3an elli 3ala balak."
         else:
-            sys_base = (
-                "You are El Consulto, an empathic psychiatrist AI. "
-                "In each reply, combine warmth and professional insight with the specific details "
-                "you know about this client’s journey—past challenges, fears, and hopes—"
-                "without ever labeling sessions. "
-                "If anything goes wrong, apologize briefly and ask them to try again."
+            clarifier = (
+                "I hear your laughter—sometimes that’s a way of coping. "
+                "Would you like to tell me more about what you’re feeling right now?"
             )
-            greet_first = "Hello! I’m El Consulto, your virtual psychiatrist."
-            thank_you   = "Thank you for sharing."
-            error_reply = "Sorry, I ran into an issue. Could you please try again?"
 
-        # --- 2) Ensure history & interviewer state exist ---
+        # --- 2) Detect non-answers (e.g. "hahah", "lol") ---
+        # simple regex to catch repeated "ha" or "heh"
+        if re.fullmatch(r'\s*(?:ha)+h?\s*', user_message.lower()) or \
+           re.fullmatch(r'\s*(?:heh)+\s*', user_message.lower()) or \
+           len(user_message.strip()) < 2:
+            return clarifier
+
+        # --- 3) Ensure session data exists ---
         if session_id not in self.histories:
             self.histories[session_id] = []
         self.interviewer.init_session(session_id)
 
-        # --- 3) Structured interview phase ---
+        # --- 4) STRUCTURED INTERVIEW PHASE ---
         if not self.interviewer.is_complete(session_id):
             last_sec = self.awaiting.get(session_id)
-            # a) record prior answer
+            # record the previous valid answer
             if last_sec:
                 self.interviewer.record_response(session_id, user_message)
 
-            # b) get next question
+            # ask the next section
             next_sec = self.interviewer.next_section(session_id)
             question = self.interviewer.get_question(session_id)
 
-            # c) build conversational prompt
+            # build a natural transition
             if last_sec is None:
-                # very first turn
-                prompt = f"{greet_first} {question}"
+                prompt = f"Hello! I’m El Consulto, your virtual psychiatrist. {question}"
             else:
-                prompt = f"{thank_you} {question}"
+                prompt = f"Thank you for sharing. {question}"
 
-            # d) mark as awaiting this section
+            # mark which section we’re awaiting
             self.awaiting[session_id] = next_sec
             return prompt
 
-        # --- 4) Free-form therapy phase ---
-        # a) assemble the patient sheet
+        # --- 5) FREE-FORM THERAPY PHASE ---
+        # assemble patient sheet
         sheet = self.interviewer.get_sheet(session_id)
         sheet_text = "\n".join(f"{k.replace('_',' ').title()}: {v}"
                                for k, v in sheet.items())
 
-        # b) retrieve relevant memory
+        # retrieve relevant memory
         past_notes = self.mem.retrieve(session_id, user_message, k=3)
         memory_block = ("\n".join(past_notes) + "\n\n") if past_notes else ""
 
-        # c) build the message sequence
+        # build the chat messages
+        sys_base = (
+            "You are El Consulto, an empathic psychiatrist AI. "
+            "Use details from this client’s psychiatric sheet to inform each reply. "
+            "Keep responses concise, offer practical steps, and maintain warmth. "
+            "If the user goes off-topic, gently refocus on their feelings."
+        )
         messages = [
             {"role": "system",   "content": sys_base},
             {"role": "system",   "content": "Patient Sheet:\n" + sheet_text},
@@ -113,7 +101,7 @@ class ConversationAgent:
         messages.extend(self.histories[session_id])
         messages.append({"role": "user", "content": memory_block + user_message})
 
-        # d) call the LLM with error handling
+        # call the LLM with error handling
         try:
             resp = self.client.chat.completions.create(
                 model=self.model,
@@ -125,9 +113,14 @@ class ConversationAgent:
         except (ta_errors.AuthenticationError,
                 ta_errors.InvalidRequestError,
                 Exception):
-            return error_reply
+            if lang == 'ar':
+                return "عذرًا، حدث خطأ مؤقت. هل يمكنك المحاولة مرة أخرى؟"
+            elif lang == 'franco':
+                return "M3lesh, fe moshkela tecnyia. 7awel tani law sama7t."
+            else:
+                return "Sorry, something went wrong. Could you try again?"
 
-        # e) record history & memory
+        # record history & memory
         self.histories[session_id].append({"role":"user",    "content":user_message})
         self.histories[session_id].append({"role":"assistant","content":answer})
         self.mem.add(session_id, user_message, answer)
@@ -135,10 +128,11 @@ class ConversationAgent:
         return answer
 
 if __name__ == "__main__":
+    # Quick test
     agent = ConversationAgent(
         model_name="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
         embed_model="togethercomputer/m2-bert-80M-8k-retrieval",
         index_name="wss-ai-memory"
     )
-    # Example test
-    print(agent.ask("test-session", "أنا حسيت بتوتر من قلبي"))
+    print(agent.ask("test-session", "hahaha"))        # clarifier
+    print(agent.ask("test-session", "I feel sad."))  # structured Q1
