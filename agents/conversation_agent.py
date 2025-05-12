@@ -4,7 +4,7 @@ import re
 import math
 from together import Together, error as ta_errors
 from memory.memory_manager import MemoryManager
-from interview_manager import InterviewManager
+from interview_manager import InterviewManager, SECTION_QUESTIONS
 
 def detect_language(text: str) -> str:
     if re.search(r'[\u0600-\u06FF]', text):
