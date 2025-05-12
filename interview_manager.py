@@ -2,109 +2,174 @@
 
 from typing import Dict, Optional
 
-# Our sheet template
-SCHEMA_TEMPLATE = {
-    "personal_info": None,
-    "chief_complaint": None,
-    "history_present_illness": None,
-    "past_psychiatric_history": None,
-    "medical_history": None,
-    "surgical_history": None,
-    "family_history": None,
-    "substance_use_history": None,
-    "psychological_assessment": None,
-    "mental_state_exam": None,
-    "formulation": None,
-    "provisional_diagnosis": None,
+# Define the order of your sections
+SECTIONS = [
+    "personal_info",
+    "chief_complaint",
+    "history_present_illness",
+    "past_psychiatric_history",
+    "medical_history",
+    "surgical_history",
+    "family_history",
+    "substance_use_history",
+    "psychological_assessment",
+    "mental_state_exam",
+    "formulation",
+    "provisional_diagnosis",
+]
+
+# Sub-fields for each section.
+# HPI gets a rich set; others get [main, additional_details]
+SUBFIELDS = {
+    "history_present_illness": [
+        "onset", "course", "severity", "triggers", "functional_impact", "additional_details"
+    ]
+}
+for sec in SECTIONS:
+    if sec not in SUBFIELDS:
+        SUBFIELDS[sec] = ["main", "additional_details"]
+
+# Human‐friendly section titles for "additional_details" prompts
+TITLES = {
+    "personal_info": "personal information",
+    "chief_complaint": "chief complaint",
+    "history_present_illness": "history of present illness",
+    "past_psychiatric_history": "past psychiatric history",
+    "medical_history": "medical history",
+    "surgical_history": "surgical history",
+    "family_history": "family history",
+    "substance_use_history": "substance use history",
+    "psychological_assessment": "psychological assessment",
+    "mental_state_exam": "current mental state",
+    "formulation": "formulation",
+    "provisional_diagnosis": "provisional diagnosis",
 }
 
-# Natural language prompts to gather each section
-SECTION_QUESTIONS = {
-    "personal_info":
-        "To begin, please tell me a bit about yourself: your age, occupation, living situation, "
-        "and anything else you’d like me to know about who you are right now.",
-    "chief_complaint":
-        "What is the main issue that brings you here today? In your own words, please describe "
-        "what’s most concerning you.",
-    "history_present_illness":
-        "Can you walk me through how this issue has developed over time? Describe when it started, "
-        "how it’s changed, and any triggers you’ve noticed.",
-    "past_psychiatric_history":
-        "Have you ever experienced similar difficulties in the past or worked with a mental health "
-        "professional before? Share any relevant history.",
-    "medical_history":
-        "Tell me about your medical history—any chronic conditions, medications, surgeries, or "
-        "ongoing treatments.",
-    "surgical_history":
-        "Are there any surgeries you’ve undergone that you think might be important for me to know?",
-    "family_history":
-        "Does mental health or any medical condition run in your family? Please share what you’re "
-        "comfortable disclosing.",
-    "substance_use_history":
-        "Have you used alcohol, tobacco, or any recreational or prescription substances? Let me know "
-        "about frequency and any concerns.",
-    "psychological_assessment":
-        "I’d like to understand your personality and coping style. Have you ever taken assessments "
-        "like MBTI or similar? If not, describe your typical ways of thinking, feeling, and behaving.",
-    "mental_state_exam":
-        "Right now, how would you describe your mood, thoughts, and overall mental state? Are you "
-        "feeling anxious, calm, motivated, etc.?",
-    "formulation":
-        "Based on what you’ve shared, how would you explain why these difficulties are happening? "
-        "This can be in your own words.",
-    "provisional_diagnosis":
-        "Given all of this, what label or name feels closest to describing your experience (for "
-        "example, anxiety, depression, OCD)? If you’re unsure, it’s okay to say so.",
-}
+# Multilingual question templates
+# For brevity we’ll show English + Arabic; Franco-Arab uses the Arabic TTS to speak romanized text
+QUESTIONS = {}
+
+for sec in SECTIONS:
+    QUESTIONS[sec] = {}
+    for field in SUBFIELDS[sec]:
+        # defaults
+        en = ""
+        ar = ""
+        if sec == "history_present_illness":
+            # detailed HPI
+            if field == "onset":
+                en = "When did this issue begin?"
+                ar = "متى بدأت هذه المشكلة؟"
+            elif field == "course":
+                en = "How has it changed over time?"
+                ar = "كيف تطورت مع مرور الوقت؟"
+            elif field == "severity":
+                en = "On a scale of 1 to 10, how severe is it?"
+                ar = "على مقياس من 1 إلى 10، ما مدى شدتها؟"
+            elif field == "triggers":
+                en = "What seems to trigger or worsen it?"
+                ar = "ما العوامل التي تزيدها أو تفاقمها؟"
+            elif field == "functional_impact":
+                en = "How is this affecting your daily life?"
+                ar = "كيف تؤثر على حياتك اليومية؟"
+            else:  # additional_details
+                en = "Is there anything else about this issue you’d like to share?"
+                ar = "هل هناك أي تفاصيل أخرى تود مشاركتها عن هذه المشكلة؟"
+        else:
+            # generic two‐step flow
+            if field == "main":
+                # we’ll reuse SECTION_QUESTIONS for main
+                # fill later from user’s system
+                en = None
+                ar = None
+            else:
+                title = TITLES[sec]
+                en = f"Is there anything else about your {title} you’d like to add?"
+                ar = f"هل هناك أي شيء آخر حول {TITLES[sec]} تريد إضافته؟"
+        QUESTIONS[sec][field] = {"en": en, "ar": ar}
+
+# Import SECTION_QUESTIONS from your previous code as English main‐questions
+from interview_manager import SECTION_QUESTIONS as MAIN_QS  # adjust import path
+
+# Fill in the 'main' entries
+for sec in SECTIONS:
+    QUESTIONS[sec]["main"]["en"] = MAIN_QS[sec]
+    QUESTIONS[sec]["main"]["ar"] = {
+        # Arabic translations of MAIN_QS:
+        "personal_info":           "لنبدأ بالتعريف عن نفسك: عمرك، وظيفتك، وظروف معيشتك.",
+        "chief_complaint":         "ما المشكلة الرئيسية التي جلبتك اليوم؟",
+        "history_present_illness": "أخبرني كيف بدأت هذه المشكلة ولماذا أنت هنا الآن.",
+        "past_psychiatric_history":"هل تعاملت مع طبيب نفسي أو مررت بأعراض مماثلة من قبل؟",
+        "medical_history":         "أخبرني عن تاريخك الطبي: أمراض أو أدوية أو علاجات.",
+        "surgical_history":        "هل أجريت أي عمليات جراحية مهمة؟",
+        "family_history":          "هل لديك تاريخ مرضي أو نفسي في العائلة؟",
+        "substance_use_history":   "هل استخدمت الكحول أو أي مواد أخرى؟",
+        "psychological_assessment":"هل أجريت أي اختبارات نفسية مثل MBTI؟",
+        "mental_state_exam":       "كيف تصف حالتك الذهنية الآن؟",
+        "formulation":             "كيف تفسر سبب هذه المشكلات؟",
+        "provisional_diagnosis":   "ما التشخيص التقريبي الذي تشعر أنه مناسب؟",
+    }[sec]
 
 class InterviewManager:
     """
-    Drives a structured interview:
-    1) Keeps a per-session sheet
-    2) Knows which section comes next
-    3) Records user answers
-    4) Knows when the sheet is complete
+    Manages a multi‐subfield, multi‐section interview:
+    - Tracks answers per (section, subfield)
+    - Knows which prompt to ask next
+    - Knows when all data is collected
     """
     def __init__(self):
-        # session_id -> dict of section -> answer
-        self.sessions: Dict[str, Dict[str, Optional[str]]] = {}
+        # session_id → section → subfield → answer(str)
+        self.sessions: Dict[str, Dict[str, Dict[str, Optional[str]]]] = {}
 
     def init_session(self, session_id: str):
         if session_id not in self.sessions:
-            # deep copy template
-            self.sessions[session_id] = {k: None for k in SCHEMA_TEMPLATE}
+            # deep‐copy template
+            self.sessions[session_id] = {
+                sec: {f: None for f in SUBFIELDS[sec]}
+                for sec in SECTIONS
+            }
 
-    def next_section(self, session_id: str) -> Optional[str]:
-        """Return the next section key that is still None, or None if complete."""
+    def next_field(self, session_id: str):
+        """Return (section, subfield) for the next unanswered field, or (None,None)."""
         self.init_session(session_id)
-        for key, val in self.sessions[session_id].items():
-            if val is None:
-                return key
-        return None
+        for sec in SECTIONS:
+            for fld in SUBFIELDS[sec]:
+                if self.sessions[session_id][sec][fld] is None:
+                    return sec, fld
+        return None, None
 
-    def get_question(self, session_id: str) -> Optional[str]:
+    def get_prompt(self, session_id: str, lang: str = "en") -> str:
         """
-        Return the natural-language question for the next section,
-        or None if the sheet is complete.
+        Returns the localized question for the next field,
+        or None if the interview is fully complete.
         """
-        sec = self.next_section(session_id)
-        if sec:
-            return SECTION_QUESTIONS.get(sec)
-        return None
+        sec, fld = self.next_field(session_id)
+        if not sec:
+            return None
+        text = QUESTIONS[sec][fld][lang]
+        return text
 
-    def record_response(self, session_id: str, user_message: str):
-        """
-        Save the user’s answer under the section that was just asked.
-        """
-        sec = self.next_section(session_id)
-        if sec:
-            # record response and advance
-            self.sessions[session_id][sec] = user_message
+    def record_response(self, session_id: str, section: str, subfield: str, answer: str):
+        """Store the user's answer in the appropriate slot."""
+        self.sessions[session_id][section][subfield] = answer
 
     def is_complete(self, session_id: str) -> bool:
+        """True iff every (section, subfield) has a non‐None answer."""
         self.init_session(session_id)
-        return all(v is not None for v in self.sessions[session_id].values())
+        for sec in SECTIONS:
+            for fld in SUBFIELDS[sec]:
+                if self.sessions[session_id][sec][fld] is None:
+                    return False
+        return True
 
-    def get_sheet(self, session_id: str) -> Dict[str, Optional[str]]:
+    def get_flat_sheet(self, session_id: str) -> str:
+        """Flatten all collected data into a summary block."""
         self.init_session(session_id)
-        return self.sessions[session_id]
+        lines = []
+        for sec in SECTIONS:
+            for fld in SUBFIELDS[sec]:
+                val = self.sessions[session_id][sec][fld]
+                if val:
+                    label = f"{sec.replace('_',' ').title()} [{fld}]"
+                    lines.append(f"{label}: {val}")
+        return "\n".join(lines)
