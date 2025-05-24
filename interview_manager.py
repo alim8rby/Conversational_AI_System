@@ -1,5 +1,6 @@
 # interview_manager.py
 
+from tkinter.messagebox import QUESTION
 from typing import Dict, Optional
 
 # —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––—
@@ -71,7 +72,7 @@ class InterviewManager:
         if not sec:
             return None
         # Assume you have a QUESTIONS dict mapping sec→fld→{'en':…, 'ar':…}
-        return QUESTIONS[sec][fld][lang]
+        return QUESTION[sec][fld][lang]
 
     def record_response(self, session_id: str, section: str, subfield: str, answer: str):
         self.sessions[session_id][section][subfield] = answer
