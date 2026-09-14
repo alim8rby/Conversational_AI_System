@@ -1,183 +1,153 @@
-# -*- coding: utf-8 -*-
+import math
 import os
 import re
-import math
-from together import Together, error as ta_errors
+from typing import Dict, List, Tuple
+
+from together import Together
+
+from interview_manager import InterviewManager
 from memory.memory_manager import MemoryManager
-from interview_manager import InterviewManager, SECTION_QUESTIONS
+
+MODEL_NAME = os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "togethercomputer/m2-bert-80M-8k-retrieval")
+INDEX_NAME = os.getenv("PINECONE_INDEX", "conversation-memory")
+
 
 def detect_language(text: str) -> str:
-    if re.search(r'[\u0600-\u06FF]', text):
-        return 'ar'
-    if re.search(r'\d', text):
-        return 'ar'   # Franco-Arab also uses Arabic TTS/LLM
-    return 'en'
+    if re.search(r"[\u0600-\u06FF]", text) or re.search(r"\d", text):
+        return "ar"
+    return "en"
+
 
 def is_valid_answer(text: str) -> bool:
-    t = text.strip().lower()
-    # reject pure laughter or single letters / very brief
-    if re.fullmatch(r'(ha)+h?', t) or re.fullmatch(r'(heh)+', t) or len(t) <= 2:
+    normalized = text.strip().lower()
+    if len(normalized) < 3:
         return False
-    return len(t) >= 5  # allow slightly shorter now
+    if re.fullmatch(r"(?:ha)+h?", normalized) or re.fullmatch(r"(?:heh)+", normalized):
+        return False
+    return len(normalized) >= 5
+
 
 class ConversationAgent:
-    def __init__(self, model_name: str, embed_model: str, index_name: str):
-        self.client   = Together(api_key=os.getenv("TOGETHER_API_KEY"))
-        self.model    = model_name
-        self.mem      = MemoryManager(embed_model, index_name)
+    """Stateful conversational agent combining structured intake and semantic memory."""
 
-        self.interviewer    = InterviewManager()
-        self.awaiting       = {}  # session_id → (section, subfield)
-        self.histories      = {}  # session_id → chat history list
-        self.clarify_counts = {}  # session_id → {(section,subfield): count}
+    def __init__(self, model_name: str = MODEL_NAME, embed_model: str = EMBED_MODEL, index_name: str = INDEX_NAME):
+        self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+        self.model = model_name
+        self.mem = MemoryManager(embed_model, index_name)
+        self.interviewer = InterviewManager()
+        self.awaiting: Dict[str, Tuple[str, str]] = {}
+        self.histories: Dict[str, List[dict]] = {}
+        self.clarify_counts: Dict[Tuple[str, str, str], int] = {}
 
-    def _semantic_similarity(self, q: str, a: str) -> float:
+    def _semantic_similarity(self, question: str, answer: str) -> float:
         try:
-            resp = self.client.embeddings.create(
+            response = self.client.embeddings.create(
                 model=self.mem.embed_model,
-                input=[q, a]
+                input=[question, answer],
             )
-            vq, va = resp.data[0].embedding, resp.data[1].embedding
-            dot = sum(x*y for x,y in zip(vq, va))
-            mq = math.sqrt(sum(x*x for x in vq))
-            ma = math.sqrt(sum(x*x for x in va))
-            return dot/(mq*ma) if mq and ma else 0.0
-        except:
-            return 0.0  # on error, treat as not similar
+            qvec, avec = response.data[0].embedding, response.data[1].embedding
+            dot = sum(q * a for q, a in zip(qvec, avec))
+            qmag = math.sqrt(sum(q * q for q in qvec))
+            amag = math.sqrt(sum(a * a for a in avec))
+            return dot / (qmag * amag) if qmag and amag else 0.0
+        except Exception:
+            return 0.0
 
-    def _classify_answer(self, q: str, a: str, lang: str) -> bool:
-        sys_prompt = (
-            "أنت طبيب نفسي. هل تجيب الإجابة التالية على السؤال؟"
-            if lang=='ar' else
-            "You are a psychiatrist. Does the following answer address the question?"
-        )
+    def _classify_answer(self, question: str, answer: str, lang: str) -> bool:
+        system = "Does the answer address the question? Reply only YES or NO." if lang == "en" else "هل تجيب الإجابة على السؤال؟ أجب فقط بنعم أو لا."
         try:
-            r = self.client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role":"system","content":sys_prompt},
-                    {"role":"user","content":f"Question: {q}\nAnswer: {a}"}
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": f"Question: {question}\nAnswer: {answer}"},
                 ],
-                max_tokens_to_sample=3,
-                temperature=0.0
+                max_tokens=3,
+                temperature=0.0,
             )
-            ans = r.choices[0].message.content.strip().lower()
-            return ans.startswith('نعم') or ans.startswith('yes')
-        except:
+            result = response.choices[0].message.content.strip().lower()
+            return result.startswith("yes") or result.startswith("نعم")
+        except Exception:
             return False
 
-    def _tiered_clarifier(self, session: str, sec: str, fld: str, lang: str) -> str:
-        key = (session, sec, fld)
-        cnt = self.clarify_counts.setdefault(key, 0)
-        # gather two facts for level 3
-        sheet = self.interviewer.get_flat_sheet(session).splitlines()
-        fact1 = sheet[0] if len(sheet)>0 else ""
-        fact2 = sheet[1] if len(sheet)>1 else ""
-
-        levels_en = [
-            "I’m sorry, I didn’t quite catch that. Could you tell me more?",
-            "Sometimes feelings show up in our body—what do you notice physically right now?",
-            f"You mentioned earlier \"{fact1}\" and \"{fact2}\"—how does that relate to your answer?"
-        ]
-        levels_ar = [
-            "عذراً، لم أفهم تماماً. هل يمكنك التوضيح أكثر؟",
-            "أحياناً تظهر المشاعر في الجسد—ماذا تشعر فيه جسدياً الآن؟",
-            f"ذكرت سابقاً \"{fact1}\" و\"{fact2}\"—كيف يرتبط ذلك بردك؟"
-        ]
-
-        lvl = min(cnt, 2)
-        self.clarify_counts[key] += 1
-        return levels_ar[lvl] if lang=='ar' else levels_en[lvl]
+    def _clarify(self, session: str, section: str, field: str, lang: str) -> str:
+        key = (session, section, field)
+        count = self.clarify_counts.get(key, 0)
+        self.clarify_counts[key] = count + 1
+        if lang == "ar":
+            prompts = [
+                "ممكن توضّح لي أكثر؟",
+                "ماذا تلاحظ أو تشعر في هذا الموقف تحديداً؟",
+                "كيف يرتبط ما ذكرته الآن بما تحدثنا عنه سابقاً؟",
+            ]
+        else:
+            prompts = [
+                "Could you tell me a little more?",
+                "What do you notice or experience in this situation specifically?",
+                "How does what you just mentioned connect with what you shared earlier?",
+            ]
+        return prompts[min(count, len(prompts) - 1)]
 
     def ask(self, session_id: str, user_message: str) -> str:
         lang = detect_language(user_message)
-
-        # 1) Non-answer → clarify
         if not is_valid_answer(user_message):
-            sec, fld = self.awaiting.get(session_id, (None, None))
-            if sec:
-                return self._tiered_clarifier(session_id, sec, fld, lang)
-            return ("أريد أن أفهم أكثر—كيف تشعر الآن؟" if lang=='ar'
-                    else "I’d like to understand better—how are you feeling right now?")
+            current = self.awaiting.get(session_id)
+            return self._clarify(session_id, *current, lang) if current else (
+                "ممكن تحكي لي أكثر؟" if lang == "ar" else "Could you tell me a little more?"
+            )
 
-        # 2) Init session state
         self.interviewer.init_session(session_id)
         self.histories.setdefault(session_id, [])
 
-        # 3) Structured interview
         if not self.interviewer.is_complete(session_id):
-            last = self.awaiting.get(session_id)
-            if last[0]:
-                q_text = self.interviewer.get_prompt(session_id, lang)
-                sim    = self._semantic_similarity(q_text, user_message)
-                cls_ok = self._classify_answer(q_text, user_message, lang)
-                if sim < 0.3 or not cls_ok:
-                    return self._tiered_clarifier(session_id, *last, lang)
+            current = self.awaiting.get(session_id)
+            if current:
+                section, field = current
+                question = self.interviewer.get_prompt(session_id, lang)
+                similarity = self._semantic_similarity(question or "", user_message)
+                relevant = self._classify_answer(question or "", user_message, lang)
+                if similarity < 0.30 or not relevant:
+                    return self._clarify(session_id, section, field, lang)
+                self.interviewer.record_response(session_id, section, field, user_message)
+                self.clarify_counts.pop((session_id, section, field), None)
 
-                # record valid subfield answer
-                self.interviewer.record_response(session_id, last[0], last[1], user_message)
-                self.clarify_counts.pop((session_id, *last), None)
+            section, field = self.interviewer.next_field(session_id)
+            prompt = self.interviewer.get_prompt(session_id, lang)
+            self.awaiting[session_id] = (section, field)
+            return prompt or ""
 
-            # ask next
-            sec, fld = self.interviewer.next_field(session_id)
-            prompt    = self.interviewer.get_prompt(session_id, lang)
-            greet     = "مرحباً!" if fld=="main" and lang=='ar' else "Hello!"    
-            thank     = "شكراً لمشاركتك. " if fld!=" 'main'" and lang=='ar' else "Thank you for sharing. "
-
-            text = (greet+" "+prompt) if fld=="main" else (thank+prompt)
-            self.awaiting[session_id] = (sec, fld)
-            return text
-
-        # 4) Free-form therapy
         sheet = self.interviewer.get_flat_sheet(session_id)
-        notes = self.mem.retrieve(session_id, user_message, k=3)
-        mem   = "\n".join(notes)+"\n\n" if notes else ""
-
-        sys_en = (
-            "You are El Consulto, a friendly psychiatrist AI. Use the sheet to craft concise, actionable responses."
-            " If the user drifts off-topic, gently bring them back."
+        memories = self.mem.retrieve(session_id, user_message, k=3)
+        memory_context = "\n".join(memories)
+        system = (
+            "You are a concise conversational AI. Use the provided session information and relevant memory to maintain context. "
+            "Do not claim to be a clinician, diagnose the user, or imply that this prototype replaces professional care."
         )
-        sys_ar = (
-            "أنت El Consulto، المعالج الودود. استخدم ورقة المعلومات "
-            "لتقديم ردود موجزة وعملية. إذا ابتعد المريض عن الموضوع، أعده بلطف."
-        )
-
-        sys = sys_ar if lang=='ar' else sys_en
-        err = "عفواً، حدث خطأ. حاول مرة أخرى." if lang=='ar' else "Sorry, something went wrong. Please try again."
-
         messages = [
-            {"role":"system","content":sys},
-            {"role":"system","content":"Patient Sheet:\n"+sheet},
+            {"role": "system", "content": system},
+            {"role": "system", "content": "Session information:\n" + sheet},
         ]
         messages.extend(self.histories[session_id])
-        messages.append({"role":"user","content":mem+user_message})
+        if memory_context:
+            messages.append({"role": "system", "content": "Relevant memory:\n" + memory_context})
+        messages.append({"role": "user", "content": user_message})
 
         try:
-            resp   = self.client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                max_tokens_to_sample=250,
-                temperature=0.7
+                max_tokens=250,
+                temperature=0.7,
             )
-            answer = resp.choices[0].message.content.strip()
-        except:
-            return err
+            answer = response.choices[0].message.content.strip()
+        except Exception:
+            return "Sorry, something went wrong. Please try again."
 
-        # record final
-        self.histories[session_id].append({"role":"user",    "content":user_message})
-        self.histories[session_id].append({"role":"assistant","content":answer})
-        self.mem.add(session_id, user_message, answer)
-
+        self.histories[session_id].extend([
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": answer},
+        ])
+        memory_id = f"{session_id}-{len(self.histories[session_id])}"
+        self.mem.add(session_id, memory_id, f"User: {user_message}\nAssistant: {answer}")
         return answer
-
-if __name__ == "__main__":
-    agent = ConversationAgent(
-        model_name="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-        embed_model="togethercomputer/m2-bert-80M-8k-retrieval",
-        index_name="wss-ai-memory"
-    )
-    # Quick smoke
-    for inp in ["hahaha","k","I feel stuck at work","مساء الخير","مش فاهم حاجة"]:
-        print("User:",inp)
-        print("Bot :",agent.ask("demo",inp))
-        print()

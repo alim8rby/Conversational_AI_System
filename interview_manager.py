@@ -1,96 +1,102 @@
-# interview_manager.py
+from typing import Dict, Optional, Tuple
 
-from tkinter.messagebox import QUESTION
-from typing import Dict, Optional
-
-# —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––—
-# Define your main section prompts here to avoid any circular imports
 SECTION_QUESTIONS: Dict[str, str] = {
-    "personal_info":           "To begin, please tell me a bit about yourself: your age, occupation, living situation, etc.",
-    "chief_complaint":         "What is the main issue that brings you here today? In your own words, please describe what’s most concerning you.",
-    "history_present_illness": "Can you walk me through how this issue has developed over time? Describe when it started, how it’s changed, and any triggers you’ve noticed.",
-    "past_psychiatric_history": "Have you ever experienced similar difficulties in the past or worked with a mental health professional before? Share any relevant history.",
-    "medical_history":         "Tell me about your medical history—any chronic conditions, medications, surgeries, or ongoing treatments.",
-    "surgical_history":        "Are there any surgeries you’ve undergone that you think might be important for me to know?",
-    "family_history":          "Does mental health or any medical condition run in your family? Please share what you’re comfortable disclosing.",
-    "substance_use_history":   "Have you used alcohol, tobacco, or any recreational or prescription substances? Let me know about frequency and any concerns.",
-    "psychological_assessment":"I’d like to understand your personality and coping style. Have you ever taken assessments like MBTI or similar? If not, describe your typical ways of thinking, feeling, and behaving.",
-    "mental_state_exam":       "Right now, how would you describe your mood, thoughts, and overall mental state? Are you feeling anxious, calm, motivated, etc.?",
-    "formulation":             "Based on what you’ve shared, how would you explain why these difficulties are happening? This can be in your own words.",
-    "provisional_diagnosis":   "Given all of this, what label or name feels closest to describing your experience (for example, anxiety, depression, OCD)? If you’re unsure, it’s okay to say so."
+    "personal_info": "Tell me a little about yourself, such as your age, occupation, and living situation.",
+    "chief_complaint": "What is the main issue that brings you here today? Describe what concerns you most in your own words.",
+    "history_present_illness": "Walk me through how this issue developed over time. When did it start, how has it changed, and what triggers have you noticed?",
+    "past_psychiatric_history": "Have you experienced similar difficulties before or worked with a mental health professional?",
+    "medical_history": "Tell me about relevant medical conditions, medications, surgeries, or ongoing treatments.",
+    "surgical_history": "Are there any surgeries or major procedures that are important for me to know about?",
+    "family_history": "Does mental or physical illness run in your family? Share what you are comfortable disclosing.",
+    "substance_use_history": "Tell me about alcohol, tobacco, recreational substances, or prescription medicines you use, including frequency.",
+    "psychological_assessment": "How would you describe your typical ways of thinking, feeling, coping, and behaving?",
+    "mental_state_exam": "How would you describe your mood, thoughts, anxiety, energy, and overall mental state right now?",
+    "formulation": "Based on what you have shared, how would you explain what may be contributing to these difficulties?",
+    "provisional_diagnosis": "If you had to give your experience a name or label, what would feel closest? It is fine to be unsure.",
 }
 
-# —––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––—
-# The rest of your InterviewManager implementation (multi‐subfield logic, etc.)
-# remains exactly as before—just remove any `from interview_manager import SECTION_QUESTIONS`.
-# For example:
-
-SECTIONS = [
-    "personal_info","chief_complaint","history_present_illness",
-    "past_psychiatric_history","medical_history","surgical_history",
-    "family_history","substance_use_history","psychological_assessment",
-    "mental_state_exam","formulation","provisional_diagnosis",
-]
-
+SECTIONS = list(SECTION_QUESTIONS)
 SUBFIELDS = {
-    "history_present_illness": [
-        "onset","course","severity","triggers","functional_impact","additional_details"
-    ]
+    "history_present_illness": ["onset", "course", "severity", "triggers", "functional_impact", "additional_details"]
 }
-for sec in SECTIONS:
-    if sec not in SUBFIELDS:
-        SUBFIELDS[sec] = ["main","additional_details"]
+for section in SECTIONS:
+    SUBFIELDS.setdefault(section, ["main", "additional_details"])
 
-TITLES = {
-    sec: sec.replace("_"," ").title() for sec in SECTIONS
+SUBFIELD_LABELS = {
+    "onset": "When did it start, and what was happening around that time?",
+    "course": "How has it changed since it started?",
+    "severity": "How intense or disruptive is it, and how often does it occur?",
+    "triggers": "What tends to trigger, worsen, or relieve it?",
+    "functional_impact": "How does it affect your work, relationships, routines, or daily functioning?",
+    "additional_details": "Is there anything else important about this area that you would like to add?",
 }
-
-# Build your multilingual QUESTIONS dict exactly as you had it,
-# using SECTION_QUESTIONS[sec] for the "main" subfield prompt.
-# ...
 
 class InterviewManager:
     def __init__(self):
         self.sessions: Dict[str, Dict[str, Dict[str, Optional[str]]]] = {}
 
-    def init_session(self, session_id: str):
-        if session_id not in self.sessions:
-            self.sessions[session_id] = {
-                sec: {f: None for f in SUBFIELDS[sec]} for sec in SECTIONS
-            }
+    def init_session(self, session_id: str) -> None:
+        self.sessions.setdefault(
+            session_id,
+            {section: {field: None for field in SUBFIELDS[section]} for section in SECTIONS},
+        )
 
-    def next_field(self, session_id: str):
+    def next_field(self, session_id: str) -> Tuple[Optional[str], Optional[str]]:
         self.init_session(session_id)
-        for sec in SECTIONS:
-            for fld in SUBFIELDS[sec]:
-                if self.sessions[session_id][sec][fld] is None:
-                    return sec, fld
+        for section in SECTIONS:
+            for field in SUBFIELDS[section]:
+                if self.sessions[session_id][section][field] is None:
+                    return section, field
         return None, None
 
-    def get_prompt(self, session_id: str, lang: str = "en") -> str:
-        sec, fld = self.next_field(session_id)
-        if not sec:
+    def get_prompt(self, session_id: str, lang: str = "en") -> Optional[str]:
+        section, field = self.next_field(session_id)
+        if not section:
             return None
-        # Assume you have a QUESTIONS dict mapping sec→fld→{'en':…, 'ar':…}
-        return QUESTION[sec][fld][lang]
+        if field == "main":
+            prompt = SECTION_QUESTIONS[section]
+        else:
+            prompt = SUBFIELD_LABELS.get(field, SECTION_QUESTIONS[section])
+        if lang == "ar":
+            return self._arabic_prompt(section, field, prompt)
+        return prompt
 
-    def record_response(self, session_id: str, section: str, subfield: str, answer: str):
+    @staticmethod
+    def _arabic_prompt(section: str, field: str, fallback: str) -> str:
+        arabic = {
+            "personal_info": "احكي لي قليلاً عن نفسك، مثل سنك وشغلك ووضعك المعيشي.",
+            "chief_complaint": "ما المشكلة الأساسية التي جعلتك تطلب المساعدة اليوم؟ احكي عنها بطريقتك.",
+            "history_present_illness": "احكي لي كيف بدأت المشكلة وتطورت مع الوقت، وهل لاحظت أي محفزات.",
+            "past_psychiatric_history": "هل مررت بمشكلة مشابهة من قبل أو تعاملت مع متخصص في الصحة النفسية؟",
+            "medical_history": "احكي لي عن أي أمراض مزمنة أو أدوية أو علاجات مهمة.",
+            "surgical_history": "هل أجريت أي عمليات أو إجراءات طبية مهمة؟",
+            "family_history": "هل توجد أمراض نفسية أو جسدية في العائلة؟",
+            "substance_use_history": "احكي لي عن استخدامك للتدخين أو الكحول أو أي مواد أو أدوية أخرى.",
+            "psychological_assessment": "كيف تصف عادةً طريقة تفكيرك ومشاعرك وطريقة تعاملك مع الضغوط؟",
+            "mental_state_exam": "كيف تصف مزاجك وأفكارك وقلقك وطاقة جسمك وحالتك النفسية الآن؟",
+            "formulation": "من وجهة نظرك، ما الذي قد يكون وراء الصعوبات التي تمر بها؟",
+            "provisional_diagnosis": "لو أردت أن تسمي تجربتك باسم أو وصف، ما الأقرب لها؟ وممكن تكون غير متأكد.",
+        }
+        return arabic.get(section, fallback)
+
+    def record_response(self, session_id: str, section: str, subfield: str, answer: str) -> None:
+        self.init_session(session_id)
         self.sessions[session_id][section][subfield] = answer
 
     def is_complete(self, session_id: str) -> bool:
         self.init_session(session_id)
         return all(
-            self.sessions[session_id][sec][fld] is not None
-            for sec in SECTIONS for fld in SUBFIELDS[sec]
+            self.sessions[session_id][section][field] is not None
+            for section in SECTIONS for field in SUBFIELDS[section]
         )
 
     def get_flat_sheet(self, session_id: str) -> str:
         self.init_session(session_id)
         lines = []
-        for sec in SECTIONS:
-            for fld in SUBFIELDS[sec]:
-                val = self.sessions[session_id][sec][fld]
-                if val:
-                    label = f"{sec.replace('_',' ').title()} [{fld}]"
-                    lines.append(f"{label}: {val}")
+        for section in SECTIONS:
+            for field in SUBFIELDS[section]:
+                value = self.sessions[session_id][section][field]
+                if value:
+                    label = f"{section.replace('_', ' ').title()} [{field}]"
+                    lines.append(f"{label}: {value}")
         return "\n".join(lines)

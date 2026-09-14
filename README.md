@@ -1,36 +1,34 @@
-# WsS AI
+# Conversational AI System
 
-**The Witnessing Soul System** — an experimental multilingual conversational AI built around structured interviewing, retrieval memory, and voice interaction.
+A portfolio-oriented conversational AI prototype combining structured dialogue, semantic memory, multilingual interaction, and voice output.
 
 ## Overview
 
-WsS AI explores how a conversational agent can combine a structured intake flow with free-form dialogue while maintaining session context.
+This project explores how a stateful conversational agent can move from a structured intake flow into contextual free-form dialogue while preserving relevant session information.
 
-The prototype currently integrates:
+### Stack
 
-- **LLM conversation:** Together AI with Llama 3.1 8B Instruct Turbo
-- **Structured interview:** progressive collection of user information across defined sections
-- **Answer validation:** lightweight semantic similarity and LLM-based relevance checks
-- **Session memory:** Pinecone vector retrieval scoped by session
-- **Bilingual interaction:** English and Arabic input detection
-- **Voice output:** text-to-speech responses
-- **Web API:** Flask backend with a simple browser frontend
-- **Containerization:** Docker-based deployment setup
+- **Python / Flask** — HTTP API and application layer
+- **Together AI** — LLM inference and embeddings
+- **Pinecone** — session-scoped vector memory
+- **gTTS** — text-to-speech output
+- **HTML/CSS/JavaScript** — lightweight browser client
+- **Docker** — containerized deployment
 
 ## Architecture
 
 ```text
-Browser / Client
+Browser Client
       │
       ▼
    Flask API
       │
       ▼
 ConversationAgent
-   ┌───┼───────────────┐
-   │   │               │
-   ▼   ▼               ▼
-InterviewManager   LLM / Together   VoiceEngine
+   ┌───┼────────────────┐
+   │   │                │
+   ▼   ▼                ▼
+InterviewManager   Together AI   VoiceEngine
    │                   │
    ▼                   ▼
 Session State      MemoryManager
@@ -39,34 +37,38 @@ Session State      MemoryManager
                     Pinecone
 ```
 
+## Core Flow
+
+1. A client creates a session and sends a message to `/chat`.
+2. The agent detects the interaction language.
+3. During intake, `InterviewManager` advances through structured fields.
+4. Candidate answers are checked for relevance using semantic similarity and LLM classification.
+5. After intake, the agent switches to free-form dialogue.
+6. Relevant previous exchanges are retrieved from Pinecone and supplied as context.
+7. The response is returned as text and synthesized audio.
+
 ## Repository Structure
 
 ```text
 .
-├── agents/                  # Conversation agent logic
+├── agents/                  # Conversation agent
 ├── memory/                  # Vector memory integration
-├── prompts/                 # Prompt resources
+├── prompts/                 # Prompt/data resources
 ├── voice/                   # Text-to-speech integration
-├── static/                  # Frontend assets and generated audio
-├── app.py                   # Flask application entry point
-├── interview_manager.py     # Structured interview state machine
-├── test_together.py         # Basic model/API test
+├── static/                  # Browser client
+├── tests/                   # Core unit tests
+├── app.py                   # Flask entry point
+├── interview_manager.py     # Dialogue state machine
 ├── Dockerfile               # Container configuration
-└── requirements.txt         # Python dependencies
+├── .env.example             # Environment configuration template
+└── requirements.txt         # Runtime dependencies
 ```
 
-## Core Flow
-
-1. A client starts a session and sends a message to `/chat`.
-2. The agent determines the interaction language.
-3. During intake, the `InterviewManager` advances through structured fields.
-4. Answers are checked for relevance before being recorded.
-5. After intake, the agent switches to free-form conversation using session context and retrieved memory.
-6. The response is synthesized into audio and returned alongside the text response.
-
-## Example API
+## API
 
 ### `POST /chat`
+
+Request:
 
 ```json
 {
@@ -75,7 +77,7 @@ Session State      MemoryManager
 }
 ```
 
-Example response:
+Response:
 
 ```json
 {
@@ -86,16 +88,16 @@ Example response:
 
 ## Configuration
 
-Set the required API credentials as environment variables before running the application:
+Copy `.env.example` to `.env` and provide your credentials:
 
 ```bash
-export TOGETHER_API_KEY="your-key"
-export PINECONE_API_KEY="your-key"
+TOGETHER_API_KEY=your-key
+PINECONE_API_KEY=your-key
 ```
 
-The Pinecone index configured by the current application is `wss-ai-memory`.
+Optional settings include the LLM model, embedding model, Pinecone index, and application port.
 
-## Running Locally
+## Run Locally
 
 ```bash
 python -m venv .venv
@@ -104,28 +106,38 @@ pip install -r requirements.txt
 python app.py
 ```
 
-The application runs on port `8000` by default.
+The server listens on port `8000` by default.
 
-## Docker
+## Run with Docker
 
 ```bash
-docker build -t wss-ai .
-docker run --env TOGETHER_API_KEY="your-key" --env PINECONE_API_KEY="your-key" -p 8000:8000 wss-ai
+docker build -t conversational-ai-system .
+docker run --env-file .env -p 8000:8000 conversational-ai-system
 ```
 
-## Project Status
+## Testing
 
-This repository is an **experimental prototype**, not a production clinical system. It is intended to demonstrate conversational AI architecture, stateful dialogue, retrieval-augmented memory, multilingual interaction, and voice interfaces.
+Run the core tests with Python's standard test runner:
 
-## Future Improvements
+```bash
+python -m unittest discover -s tests -v
+```
 
-- Persist conversation content alongside vector embeddings for meaningful retrieval
-- Improve session persistence and concurrency handling
-- Add automated tests for interview progression and validation
-- Separate configuration from application code
-- Add structured logging and error handling
-- Add evaluation datasets and response-quality metrics
-- Harden deployment and security for production environments
+## Engineering Notes
+
+The prototype deliberately separates the main responsibilities into an API layer, conversation orchestration, interview state management, semantic memory, and voice generation. This makes the system easier to test and extend than a single prompt-driven application.
+
+The current implementation is designed as a demonstration of conversational AI engineering rather than a production service. It does not provide medical diagnosis or replace professional care.
+
+## Roadmap
+
+- Persist structured session state outside process memory
+- Add robust memory evaluation and retrieval metrics
+- Add integration tests with mocked model/vector services
+- Improve authentication, rate limiting, and request validation
+- Add structured logging and observability
+- Add CI for tests and linting
+- Evaluate response quality with a reproducible test set
 
 ## License
 

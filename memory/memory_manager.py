@@ -1,38 +1,48 @@
 import os
+from typing import List
+
 from pinecone import Pinecone
 from together import Together
 
+
 class MemoryManager:
+    """Session-scoped semantic memory backed by Pinecone."""
+
     def __init__(self, embed_model: str, index_name: str):
-        self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
-        self.pinecone = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+        together_api_key = os.getenv("TOGETHER_API_KEY")
+        pinecone_api_key = os.getenv("PINECONE_API_KEY")
+        if not together_api_key:
+            raise RuntimeError("TOGETHER_API_KEY is not set")
+        if not pinecone_api_key:
+            raise RuntimeError("PINECONE_API_KEY is not set")
+        self.client = Together(api_key=together_api_key)
+        self.pinecone = Pinecone(api_key=pinecone_api_key)
         self.index = self.pinecone.Index(index_name)
         self.embed_model = embed_model
 
-    def add(self, session_id: str, key: str, text: str):
-        # 1) Embed the text
-        resp = self.client.embeddings.create(
-            model=self.embed_model, input=text
-        )
-        vector = resp.data[0].embedding
-        # 2) Upsert with session metadata
-        self.index.upsert(
-            [(key, vector, {"session": session_id})]
-        )
+    def _embed(self, text: str) -> List[float]:
+        response = self.client.embeddings.create(model=self.embed_model, input=text)
+        return response.data[0].embedding
 
-    def retrieve(self, session_id: str, query: str, k: int = 3):
-        # 1) Embed the query
-        resp = self.client.embeddings.create(
-            model=self.embed_model, input=query
-        )
-        qvec = resp.data[0].embedding
-        # 2) Query only this session’s items
+    def add(self, session_id: str, key: str, text: str) -> None:
+        vector = self._embed(text)
+        self.index.upsert(vectors=[{
+            "id": key,
+            "values": vector,
+            "metadata": {"session": session_id, "text": text},
+        }])
+
+    def retrieve(self, session_id: str, query: str, k: int = 3) -> List[str]:
+        qvec = self._embed(query)
         results = self.index.query(
             vector=qvec,
             top_k=k,
             include_values=False,
             include_metadata=True,
-            filter={"session": session_id}
+            filter={"session": {"$eq": session_id}},
         )
-        # 3) Return the keys
-        return [match.id for match in results.matches]
+        return [
+            match.metadata["text"]
+            for match in results.matches
+            if match.metadata and match.metadata.get("text")
+        ]
