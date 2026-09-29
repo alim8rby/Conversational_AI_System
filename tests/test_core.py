@@ -66,8 +66,7 @@ class TestConversationCore(unittest.TestCase):
         finish_run(run, "failed")
         self.assertEqual(run["status"], "failed")
         self.assertEqual(run["errors"][0]["stage"], "test")
-        self.assertIn("total_latency_ms", run["metrics"])
-
+        self.assertIn("total_latency_ms", run["metrics"])\n        self.assertEqual(run["user_message"], "[redacted]")\n
 
 if __name__ == "__main__":
     unittest.main()
