@@ -4,6 +4,7 @@ from evaluation.evaluate_dialogue import evaluate
 from evaluation.run_generation_eval import build_judge_record, DIMENSIONS
 from evaluation.voice_evaluation import evaluate_operational_run
 from evaluation.integrated_eval import evaluate_runs
+from evaluation.cost import estimate_cost
 
 class EvaluationContractTests(unittest.TestCase):
     def test_dialogue_evaluation_shape(self):
@@ -29,6 +30,10 @@ class EvaluationContractTests(unittest.TestCase):
         result = evaluate_runs([])
         self.assertEqual(result["status"], "blocked")
         self.assertEqual(result["metrics"], {})
+
+    def test_cost_is_unmeasured_without_declared_rates(self):
+        result = estimate_cost({"prompt_tokens": 10, "completion_tokens": 5})
+        self.assertIsNone(result)
 
 if __name__ == "__main__":
     unittest.main()
