@@ -1,0 +1,26 @@
+{
+  "schema_version": "experiment-v1",
+  "experiment_id": "EXP001",
+  "title": "Script-Based Language Detection",
+  "objective": "Eliminate false Arabic classifications for English messages containing digits.",
+  "hypothesis": "Language routing should use script evidence rather than digit presence.",
+  "baseline": {
+    "description": "Arabic if Arabic script OR any digit is present.",
+    "measured_metrics": {
+      "B005_language_detection": 0
+    }
+  },
+  "intervention": {
+    "description": "Arabic only when Arabic Unicode script is present; otherwise English.",
+    "measured_metrics": {
+      "B005_language_detection": 1
+    }
+  },
+  "metrics": ["B005_language_detection"],
+  "result": {
+    "evidence": ["B005", "docs/experiments/EXP001.md"],
+    "note": "Values represent the documented controlled case outcome, not a full repository execution."
+  },
+  "decision": "keep",
+  "status": "completed"
+}
