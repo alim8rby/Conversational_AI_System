@@ -142,3 +142,55 @@ The current implementation is designed as a demonstration of conversational AI e
 ## License
 
 No open-source license is currently specified.
+
+
+## Portfolio Architecture Framework
+
+# Product & Architecture Plan — Conversational AI System
+
+## Product
+A stateful conversational AI system combining structured intake, contextual free-form dialogue, semantic memory, multilingual interaction, and voice output.
+
+## Frozen framework applied
+Product → UX → System Architecture → Data Architecture → AI Architecture → Evaluation → Integration → Testing → Deployment → Portfolio.
+
+## Existing strengths
+- Flask API/application layer
+- ConversationAgent
+- Structured InterviewManager
+- Pinecone semantic memory
+- Together AI inference/embeddings
+- gTTS voice layer
+- Browser client
+- Tests and Docker already present
+
+## Target product architecture
+Browser → API → Conversation Orchestrator → State/Memory/Retrieval → LLM → Structured Response → Voice → Observability/Evaluation.
+
+## Core product surfaces
+1. Conversation experience
+2. Session/state inspector
+3. Memory/evidence inspector
+4. Evaluation dashboard
+5. Failure analysis
+6. System/operations view
+
+## Evaluation
+- Task completion
+- State-transition accuracy
+- Retrieval precision/recall
+- Memory relevance
+- Response quality
+- Grounding/unsupported claims
+- Latency/cost
+- Voice success rate
+
+## Roadmap
+V1: stabilize existing conversation flow and contracts
+V2: reproducible memory/retrieval evaluation
+V3: conversation quality + failure observatory
+V4: production hardening, observability, CI/CD
+V5: advanced personalization/tool use
+
+## Guardrails
+Preserve existing implementation. Add architecture/docs/tests around it before major refactors.
