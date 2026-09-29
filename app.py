@@ -8,6 +8,7 @@ from agents.conversation_agent import ConversationAgent
 from voice.voice_engine import VoiceEngine
 from app_health import health_response, readiness_response
 from observability.run import finish_run, record_error, persist_run
+from product.session_state import build_session_state
 
 app = Flask(__name__, static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
@@ -26,6 +27,12 @@ voice = VoiceEngine(default_lang="en")
 @app.get("/")
 def index():
     return send_from_directory(app.static_folder, "index.html")
+
+@app.get("/session/<session_id>/state")
+def session_state(session_id):
+    if not session_id.strip() or len(session_id) > 128:
+        return jsonify({"error": "Invalid session ID."}), 400
+    return jsonify(build_session_state(agent.interviewer, session_id))
 
 @app.post("/chat")
 def chat():
