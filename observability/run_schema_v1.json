@@ -1,0 +1,6 @@
+{
+  "schema_version": "run-v1",
+  "required_fields": ["run_id","timestamp_utc","session_id","user_message","language","status","metrics","errors"],
+  "status_values": ["started","success","failed"],
+  "metric_groups": ["dialogue","retrieval","classification","generation","voice"]
+}
