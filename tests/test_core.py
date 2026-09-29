@@ -37,21 +37,37 @@ class TestConversationCore(unittest.TestCase):
         manager.record_response(session, "personal_info", "main", "I am 30 years old.")
         self.assertIn("Personal Info [main]: I am 30 years old.", manager.get_flat_sheet(session))
 
-
-if __name__ == "__main__":
-    unittest.main()
-
-
     def test_run_record_contract(self):
         from observability.run import finish_run, new_run, record_error
-        run = new_run("session-1", "I am 30 years old.", "en")
+
+        run = new_run(
+            "session-1",
+            "I am 30 years old.",
+            "en",
+            metadata={
+                "application_version": "test",
+                "model": "test-model",
+                "embedding_model": "test-embed",
+                "pinecone_index": "test-index",
+                "prompt_version": "v1",
+                "retrieval_k": 3,
+                "temperature": 0.7,
+                "max_tokens": 250,
+            },
+        )
         self.assertTrue(run["run_id"])
         self.assertEqual(run["session_id"], "session-1")
         self.assertEqual(run["language"], "en")
         self.assertEqual(run["status"], "started")
         self.assertEqual(run["errors"], [])
+        self.assertEqual(run["metadata"]["model"], "test-model")
         run["metrics"]["dialogue"] = {"input_valid": True}
         record_error(run, "test", "example")
         finish_run(run, "failed")
         self.assertEqual(run["status"], "failed")
         self.assertEqual(run["errors"][0]["stage"], "test")
+        self.assertIn("total_latency_ms", run["metrics"])
+
+
+if __name__ == "__main__":
+    unittest.main()
