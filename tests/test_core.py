@@ -40,3 +40,18 @@ class TestConversationCore(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_run_record_contract(self):
+        from observability.run import finish_run, new_run, record_error
+        run = new_run("session-1", "I am 30 years old.", "en")
+        self.assertTrue(run["run_id"])
+        self.assertEqual(run["session_id"], "session-1")
+        self.assertEqual(run["language"], "en")
+        self.assertEqual(run["status"], "started")
+        self.assertEqual(run["errors"], [])
+        run["metrics"]["dialogue"] = {"input_valid": True}
+        record_error(run, "test", "example")
+        finish_run(run, "failed")
+        self.assertEqual(run["status"], "failed")
+        self.assertEqual(run["errors"][0]["stage"], "test")
