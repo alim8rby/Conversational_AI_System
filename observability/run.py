@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 RUNS_DIR = Path(__file__).resolve().parent / "runs"
+STORE_INPUT = os.getenv("OBSERVABILITY_STORE_INPUT", "false").lower() == "true"
 
 
 def new_run(session_id, user_message, language, metadata=None):
@@ -15,7 +16,7 @@ def new_run(session_id, user_message, language, metadata=None):
         "run_id": str(uuid4()),
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "session_id": session_id,
-        "user_message": user_message,
+        "user_message": user_message if STORE_INPUT else "[redacted]",
         "language": language,
         "status": "started",
         "metadata": metadata or {},
