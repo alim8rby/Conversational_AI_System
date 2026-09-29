@@ -1,10 +1,12 @@
 import os
+import time
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 from agents.conversation_agent import ConversationAgent
 from voice.voice_engine import VoiceEngine
+from observability.run import finish_run, record_error, persist_run
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
@@ -24,8 +26,28 @@ def chat():
         return jsonify({"error": "Session ID and message are required."}), 400
     try:
         reply = agent.ask(session_id, user_message)
+        run = getattr(agent, "last_run", None)
         audio_path = os.path.join("static", "tts", f"{session_id}.mp3")
-        voice.text_to_speech(reply, audio_path)
+        voice_started = time.perf_counter()
+        try:
+            voice.text_to_speech(reply, audio_path)
+            voice_latency_ms = round((time.perf_counter() - voice_started) * 1000, 2)
+            if run is not None:
+                run["metrics"]["voice"] = {
+                    "voice_latency_ms": voice_latency_ms,
+                    "voice_success": True,
+                }
+                persist_run(run)
+        except Exception:
+            voice_latency_ms = round((time.perf_counter() - voice_started) * 1000, 2)
+            if run is not None:
+                run["metrics"]["voice"] = {
+                    "voice_latency_ms": voice_latency_ms,
+                    "voice_success": False,
+                }
+                record_error(run, "voice", "TTS generation failed")
+                finish_run(run, "failed")
+            raise
         return jsonify({"reply": reply, "audio": f"/static/tts/{session_id}.mp3"})
     except Exception:
         app.logger.exception("Chat request failed")
