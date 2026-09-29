@@ -1,0 +1,9 @@
+{
+  "schema_version": "experiment-v1",
+  "required_fields": [
+    "experiment_id", "title", "objective", "hypothesis", "baseline",
+    "intervention", "metrics", "result", "decision", "status"
+  ],
+  "statuses": ["planned", "running", "completed", "blocked"],
+  "decision_values": ["keep", "revert", "iterate", "inconclusive"]
+}
