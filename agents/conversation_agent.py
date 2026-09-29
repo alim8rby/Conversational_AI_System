@@ -14,7 +14,8 @@ INDEX_NAME = os.getenv("PINECONE_INDEX", "conversation-memory")
 
 
 def detect_language(text: str) -> str:
-    if re.search(r"[\u0600-\u06FF]", text) or re.search(r"\d", text):
+    """Detect Arabic by script presence, not by numeric content."""
+    if re.search(r"[\u0600-\u06FF]", text):
         return "ar"
     return "en"
 
