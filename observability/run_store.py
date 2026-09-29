@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from collections import Counter
 
 
 class RunStore:
@@ -37,4 +38,16 @@ class RunStore:
             "successful_runs": successful,
             "failed_runs": failed,
             "failure_rate": failed / len(runs) if runs else 0.0,
+        }
+
+
+    def stage_summary(self):
+        runs = self.list_runs()
+        errors = []
+        for run in runs:
+            for error in run.get("errors", []):
+                errors.append(error.get("stage", "unknown"))
+        return {
+            "error_count": len(errors),
+            "by_stage": dict(Counter(errors)),
         }
