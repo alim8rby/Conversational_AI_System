@@ -1,0 +1,131 @@
+{
+  "benchmark_version": "v1.0",
+  "cases": [
+    {
+      "case_id": "B001",
+      "description": "Normal English intake progression",
+      "language": "en",
+      "turns": [
+        {
+          "input": "I am 30 years old, work in finance, and live with my family.",
+          "expected": {
+            "accepted": true,
+            "next_state": ["personal_info", "additional_details"]
+          }
+        }
+      ],
+      "tags": ["happy_path", "en"]
+    },
+    {
+      "case_id": "B002",
+      "description": "Short invalid answer",
+      "language": "en",
+      "turns": [
+        {
+          "input": "k",
+          "expected": {
+            "accepted": false,
+            "clarification": true,
+            "state_unchanged": true
+          }
+        }
+      ],
+      "tags": ["validation", "clarification", "en"]
+    },
+    {
+      "case_id": "B003",
+      "description": "Off-topic answer",
+      "language": "en",
+      "turns": [
+        {
+          "input": "The weather has been strange today.",
+          "expected": {
+            "accepted": false,
+            "clarification": true,
+            "state_unchanged": true
+          }
+        }
+      ],
+      "tags": ["relevance", "classification"]
+    },
+    {
+      "case_id": "B004",
+      "description": "Arabic intake",
+      "language": "ar",
+      "turns": [
+        {
+          "input": "أنا عندي ثلاثين سنة وبشتغل في مجال المالية وبعيش مع عيلتي.",
+          "expected": {
+            "accepted": true,
+            "language": "ar",
+            "next_state": ["personal_info", "additional_details"]
+          }
+        }
+      ],
+      "tags": ["arabic", "multilingual"]
+    },
+    {
+      "case_id": "B005",
+      "description": "English containing numbers",
+      "language": "en",
+      "turns": [
+        {
+          "input": "I am 30 and work in finance.",
+          "expected": {
+            "language": "en"
+          }
+        }
+      ],
+      "tags": ["language_detection", "known_risk"]
+    },
+    {
+      "case_id": "B006",
+      "description": "Repeated clarification escalation",
+      "language": "en",
+      "turns": [
+        {
+          "input": "The weather.",
+          "expected": {
+            "accepted": false,
+            "clarification": true,
+            "state_unchanged": true
+          }
+        },
+        {
+          "input": "Nothing.",
+          "expected": {
+            "accepted": false,
+            "clarification": true,
+            "state_unchanged": true
+          }
+        }
+      ],
+      "tags": ["clarification", "state_integrity"]
+    },
+    {
+      "case_id": "B007",
+      "description": "Session isolation",
+      "language": "en",
+      "turns": [
+        {
+          "input": "Session-specific answer A.",
+          "expected": {
+            "session_isolated": true
+          }
+        }
+      ],
+      "tags": ["session_isolation", "state"]
+    },
+    {
+      "case_id": "B008",
+      "description": "Intake completion transition",
+      "language": "en",
+      "turns": [],
+      "expected": {
+        "intake_completion": true,
+        "free_form_transition": true
+      },
+      "tags": ["state_transition", "completion"]
+    }
+  ]
+}
