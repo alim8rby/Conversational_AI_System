@@ -1,0 +1,9 @@
+{
+  "schema_version": "evaluation-v1",
+  "required_fields": ["evaluation_id","timestamp_utc","benchmark_version","evaluation_type","status","cases","metrics","failures"],
+  "evaluation_types": ["deterministic","retrieval","generation","voice","integrated"],
+  "status_values": ["completed","blocked","failed"],
+  "case_result_fields": ["case_id","status","metrics","evidence"],
+  "quality_dimensions": ["relevance","coherence","instruction_adherence","groundedness","unsupported_claims"],
+  "operational_metrics": ["latency_ms","total_tokens","voice_success"]
+}
