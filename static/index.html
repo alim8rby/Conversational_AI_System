@@ -16,12 +16,16 @@
 <main>
   <header><h1>Conversational AI System</h1><p>Structured intake, contextual memory, and voice-enabled dialogue.</p></header>
   <section id="chat" aria-live="polite"></section>
+  <aside id="state" aria-label="Session state">Session state: loading…</aside>
   <form id="form"><input id="input" autocomplete="off" placeholder="Type a message…"><button>Send</button></form>
 </main>
 <script>
+const state=document.querySelector("#state");
 const session=crypto.randomUUID(),chat=document.querySelector('#chat'),input=document.querySelector('#input');
+async function refreshState(){try{const r=await fetch('/session/'+encodeURIComponent(session)+'/state');const s=await r.json();state.textContent='Session: '+s.status+' · '+Math.round(s.progress.completion_rate*100)+'% complete';}catch(e){state.textContent='Session state unavailable';}}
+refreshState();
 function add(text,role){const el=document.createElement('div');el.className='msg '+role;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;}
-document.querySelector('#form').addEventListener('submit',async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;input.value='';add(message,'user');try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,message})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');add(data.reply,'bot');if(data.audio){new Audio(data.audio+'?t='+Date.now()).play().catch(()=>{});}}catch(err){add('Request failed. Please try again.','bot');console.error(err);}});
+document.querySelector('#form').addEventListener('submit',async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;input.value='';add(message,'user');try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,message})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');add(data.reply,'bot');refreshState();if(data.audio){new Audio(data.audio+'?t='+Date.now()).play().catch(()=>{});}}catch(err){add('Request failed. Please try again.','bot');console.error(err);}});
 </script>
 </body>
 </html>
