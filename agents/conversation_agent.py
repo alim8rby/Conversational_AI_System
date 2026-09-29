@@ -8,6 +8,7 @@ from together import Together
 
 from interview_manager import InterviewManager
 from memory.memory_manager import MemoryManager
+from observability.run import new_run, finish_run, record_error
 
 MODEL_NAME = os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "togethercomputer/m2-bert-80M-8k-retrieval")
@@ -93,8 +94,12 @@ class ConversationAgent:
 
     def ask(self, session_id: str, user_message: str) -> str:
         lang = detect_language(user_message)
-        if not is_valid_answer(user_message):
+        run = new_run(session_id, user_message, lang)
+        self.last_run = run
+        run["metrics"]["dialogue"] = {"input_valid": is_valid_answer(user_message)}
+        if not run["metrics"]["dialogue"]["input_valid"]:
             current = self.awaiting.get(session_id)
+            finish_run(run)
             return self._clarify(session_id, *current, lang) if current else (
                 "ممكن تحكي لي أكثر؟" if lang == "ar" else "Could you tell me a little more?"
             )
@@ -113,8 +118,10 @@ class ConversationAgent:
                 classification_started = time.perf_counter()
                 relevant = self._classify_answer(question or "", user_message, lang)
                 classification_latency_ms = round((time.perf_counter() - classification_started) * 1000, 2)
-                self.last_turn_metrics = {"semantic_similarity": similarity, "semantic_similarity_latency_ms": similarity_latency_ms, "classification_relevant": relevant, "classification_latency_ms": classification_latency_ms}
+                run["metrics"]["classification"] = {"semantic_similarity": similarity, "semantic_similarity_latency_ms": similarity_latency_ms, "classification_relevant": relevant, "classification_latency_ms": classification_latency_ms}
+                self.last_turn_metrics = run["metrics"]["classification"]
                 if similarity < 0.30 or not relevant:
+                    finish_run(run)
                     return self._clarify(session_id, section, field, lang)
                 self.interviewer.record_response(session_id, section, field, user_message)
                 self.clarify_counts.pop((session_id, section, field), None)
@@ -122,13 +129,17 @@ class ConversationAgent:
             section, field = self.interviewer.next_field(session_id)
             prompt = self.interviewer.get_prompt(session_id, lang)
             self.awaiting[session_id] = (section, field)
+            run["metrics"]["dialogue"]["next_section"] = section
+            run["metrics"]["dialogue"]["next_field"] = field
+            finish_run(run)
             return prompt or ""
 
         sheet = self.interviewer.get_flat_sheet(session_id)
         retrieval_started = time.perf_counter()
         memories = self.mem.retrieve(session_id, user_message, k=3)
         retrieval_latency_ms = round((time.perf_counter() - retrieval_started) * 1000, 2)
-        self.last_turn_metrics = {"retrieval_latency_ms": retrieval_latency_ms, "retrieved_count": len(memories)}
+        run["metrics"]["retrieval"] = {"retrieval_latency_ms": retrieval_latency_ms, "retrieved_count": len(memories)}
+        self.last_turn_metrics = run["metrics"]["retrieval"]
         memory_context = "\n".join(item["text"] if isinstance(item, dict) else item for item in memories)
         system = (
             "You are a concise conversational AI. Use the provided session information and relevant memory to maintain context. "
@@ -153,9 +164,15 @@ class ConversationAgent:
             )
             answer = response.choices[0].message.content.strip()
         except Exception:
-            self.last_turn_metrics = {"generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2), "generation_error": True}
+            latency = round((time.perf_counter() - generation_started) * 1000, 2)
+            run["metrics"]["generation"] = {"generation_latency_ms": latency, "generation_error": True}
+            record_error(run, "generation", "LLM generation failed")
+            finish_run(run, "failed")
+            self.last_turn_metrics = run["metrics"]["generation"]
             return "Sorry, something went wrong. Please try again."
-        self.last_turn_metrics = {**getattr(self, "last_turn_metrics", {}), "generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2), "generation_error": False}
+        run["metrics"]["generation"] = {"generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2), "generation_error": False}
+        self.last_turn_metrics = {**getattr(self, "last_turn_metrics", {}), **run["metrics"]["generation"]}
+        finish_run(run)
 
         self.histories[session_id].extend([
             {"role": "user", "content": user_message},
