@@ -35,6 +35,7 @@ class Settings:
     app_version: str
     prompt_version: str
     observability_store_input: bool
+    cors_origins: str
 
 
 def load_settings(require_providers: bool = True) -> Settings:
@@ -48,4 +49,5 @@ def load_settings(require_providers: bool = True) -> Settings:
         app_version=os.getenv("APP_VERSION", "unknown"),
         prompt_version=os.getenv("PROMPT_VERSION", "v1"),
         observability_store_input=os.getenv("OBSERVABILITY_STORE_INPUT", "false").lower() == "true",
+        cors_origins=os.getenv("CORS_ORIGINS", "http://localhost:8000"),
     )
