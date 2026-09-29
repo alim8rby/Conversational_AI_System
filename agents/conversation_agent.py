@@ -182,6 +182,13 @@ class ConversationAgent:
                 temperature=GENERATION_TEMPERATURE,
             )
             answer = response.choices[0].message.content.strip()
+            usage = getattr(response, "usage", None)
+            if usage is not None:
+                run["metrics"]["generation"]["token_usage"] = {
+                    "prompt_tokens": getattr(usage, "prompt_tokens", None),
+                    "completion_tokens": getattr(usage, "completion_tokens", None),
+                    "total_tokens": getattr(usage, "total_tokens", None),
+                }
         except Exception:
             latency = round((time.perf_counter() - generation_started) * 1000, 2)
             run["metrics"]["generation"] = {"generation_latency_ms": latency, "generation_error": True}
