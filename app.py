@@ -12,6 +12,7 @@ from product.session_state import build_session_state
 from product.memory_inspector import inspect_memory
 from product.evaluation_lab import build_evaluation_lab
 from product.failure_observatory import build_failure_observatory
+from product.operations import build_operations
 
 app = Flask(__name__, static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
@@ -71,6 +72,14 @@ def failures():
     except Exception:
         app.logger.exception("Failure observatory failed")
         return jsonify({"error": "Unable to load failure data."}), 500
+
+@app.get("/operations")
+def operations():
+    try:
+        return jsonify(build_operations())
+    except Exception:
+        app.logger.exception("Operations dashboard failed")
+        return jsonify({"error": "Unable to load operations data."}), 500
 
 @app.get("/failures/<failure_id>")
 def failure_detail(failure_id):
