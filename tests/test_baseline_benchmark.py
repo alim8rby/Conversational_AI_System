@@ -39,10 +39,10 @@ class TestBaselineBenchmark(unittest.TestCase):
     def test_b004_arabic_detection(self):
         self.assertEqual(detect_language("أنا عندي ثلاثين سنة"), "ar")
 
+    @unittest.expectedFailure
     def test_b005_english_with_numbers(self):
-        # Current baseline behavior is intentionally captured here.
-        # This test documents a known failure candidate for a later experiment.
-        self.assertEqual(detect_language("I am 30 and work in finance."), "ar")
+        # Known baseline defect: digits force Arabic classification.
+        self.assertEqual(detect_language("I am 30 and work in finance."), "en")
 
     def test_b006_clarification_state_does_not_advance(self):
         manager = InterviewManager()
@@ -50,8 +50,9 @@ class TestBaselineBenchmark(unittest.TestCase):
         section, field = manager.next_field(session)
         self.assertEqual((section, field), ("personal_info", "main"))
 
-        self.assertFalse(is_valid_answer("The weather."))
-
+        # Provider-dependent relevance classification is excluded from this
+        # deterministic baseline test. Verify the state contract directly.
+        self.assertFalse(is_valid_answer("k"))
         self.assertEqual(manager.next_field(session), (section, field))
 
     def test_b007_session_isolation(self):
