@@ -1,6 +1,7 @@
 import math
 import os
 import re
+import time
 from typing import Dict, List, Tuple
 
 from together import Together
@@ -106,8 +107,13 @@ class ConversationAgent:
             if current:
                 section, field = current
                 question = self.interviewer.get_prompt(session_id, lang)
+                similarity_started = time.perf_counter()
                 similarity = self._semantic_similarity(question or "", user_message)
+                similarity_latency_ms = round((time.perf_counter() - similarity_started) * 1000, 2)
+                classification_started = time.perf_counter()
                 relevant = self._classify_answer(question or "", user_message, lang)
+                classification_latency_ms = round((time.perf_counter() - classification_started) * 1000, 2)
+                self.last_turn_metrics = {"semantic_similarity": similarity, "semantic_similarity_latency_ms": similarity_latency_ms, "classification_relevant": relevant, "classification_latency_ms": classification_latency_ms}
                 if similarity < 0.30 or not relevant:
                     return self._clarify(session_id, section, field, lang)
                 self.interviewer.record_response(session_id, section, field, user_message)
@@ -119,8 +125,11 @@ class ConversationAgent:
             return prompt or ""
 
         sheet = self.interviewer.get_flat_sheet(session_id)
+        retrieval_started = time.perf_counter()
         memories = self.mem.retrieve(session_id, user_message, k=3)
-        memory_context = "\n".join(memories)
+        retrieval_latency_ms = round((time.perf_counter() - retrieval_started) * 1000, 2)
+        self.last_turn_metrics = {"retrieval_latency_ms": retrieval_latency_ms, "retrieved_count": len(memories)}
+        memory_context = "\n".join(item["text"] if isinstance(item, dict) else item for item in memories)
         system = (
             "You are a concise conversational AI. Use the provided session information and relevant memory to maintain context. "
             "Do not claim to be a clinician, diagnose the user, or imply that this prototype replaces professional care."
@@ -134,6 +143,7 @@ class ConversationAgent:
             messages.append({"role": "system", "content": "Relevant memory:\n" + memory_context})
         messages.append({"role": "user", "content": user_message})
 
+        generation_started = time.perf_counter()
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -143,7 +153,9 @@ class ConversationAgent:
             )
             answer = response.choices[0].message.content.strip()
         except Exception:
+            self.last_turn_metrics = {"generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2), "generation_error": True}
             return "Sorry, something went wrong. Please try again."
+        self.last_turn_metrics = {**getattr(self, "last_turn_metrics", {}), "generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2), "generation_error": False}
 
         self.histories[session_id].extend([
             {"role": "user", "content": user_message},
