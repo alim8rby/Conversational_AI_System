@@ -6,3 +6,9 @@ __pycache__/
 *.log
 static/tts/*.mp3
 observability/runs/*.json
+
+.coverage
+coverage.xml
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
