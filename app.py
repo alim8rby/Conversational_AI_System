@@ -57,6 +57,13 @@ def chat():
             raise
         return jsonify({"reply": reply, "audio": f"/static/tts/{session_id}.mp3"})
     except Exception:
+        run = getattr(agent, "last_run", None)
+        if run is not None and run.get("status") == "started":
+            run["metrics"]["total_latency_ms"] = round(
+                (time.perf_counter() - request_started) * 1000, 2
+            )
+            record_error(run, "application", "Chat request failed")
+            finish_run(run, "failed")
         app.logger.exception("Chat request failed")
         return jsonify({"error": "Unable to process the request."}), 500
 
