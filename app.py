@@ -24,6 +24,7 @@ def chat():
     user_message = str(data.get("message", "")).strip()
     if not session_id or not user_message:
         return jsonify({"error": "Session ID and message are required."}), 400
+    request_started = time.perf_counter()
     try:
         reply = agent.ask(session_id, user_message)
         run = getattr(agent, "last_run", None)
@@ -37,6 +38,9 @@ def chat():
                     "voice_latency_ms": voice_latency_ms,
                     "voice_success": True,
                 }
+                run["metrics"]["total_latency_ms"] = round(
+                    (time.perf_counter() - request_started) * 1000, 2
+                )
                 persist_run(run)
         except Exception:
             voice_latency_ms = round((time.perf_counter() - voice_started) * 1000, 2)
@@ -45,6 +49,9 @@ def chat():
                     "voice_latency_ms": voice_latency_ms,
                     "voice_success": False,
                 }
+                run["metrics"]["total_latency_ms"] = round(
+                    (time.perf_counter() - request_started) * 1000, 2
+                )
                 record_error(run, "voice", "TTS generation failed")
                 finish_run(run, "failed")
             raise
