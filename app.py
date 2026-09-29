@@ -9,6 +9,7 @@ from voice.voice_engine import VoiceEngine
 from app_health import health_response, readiness_response
 from observability.run import finish_run, record_error, persist_run
 from product.session_state import build_session_state
+from product.memory_inspector import inspect_memory
 
 app = Flask(__name__, static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
@@ -33,6 +34,19 @@ def session_state(session_id):
     if not session_id.strip() or len(session_id) > 128:
         return jsonify({"error": "Invalid session ID."}), 400
     return jsonify(build_session_state(agent.interviewer, session_id))
+
+@app.get("/session/<session_id>/memory")
+def memory_inspector(session_id):
+    query = request.args.get("q", "").strip()
+    try:
+        k = int(request.args.get("k", "3"))
+        result = inspect_memory(agent.mem, session_id, query, k)
+    except (ValueError, TypeError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        app.logger.exception("Memory inspection failed")
+        return jsonify({"error": "Unable to inspect memory."}), 500
+    return jsonify(result)
 
 @app.post("/chat")
 def chat():
