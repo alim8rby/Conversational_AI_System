@@ -3,6 +3,8 @@
 import json
 from collections import Counter
 from pathlib import Path
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from observability.failure_schema import validate_failure
 
@@ -56,3 +58,29 @@ class FailureStore:
             and (severity is None or f["severity"] == severity)
             and (status is None or f["status"] == status)
         ]
+
+
+    def record(self, category, stage, severity, expected_behavior, actual_behavior,
+               evidence, session_id=None, root_cause=None, experiment_id=None,
+               status="open"):
+        record = {
+            "failure_id": str(uuid4()),
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "session_id": session_id,
+            "category": category,
+            "stage": stage,
+            "severity": severity,
+            "expected_behavior": expected_behavior,
+            "actual_behavior": actual_behavior,
+            "evidence": evidence,
+            "root_cause": root_cause,
+            "experiment_id": experiment_id,
+            "status": status,
+        }
+        errors = validate_failure(record)
+        if errors:
+            raise ValueError("Invalid failure record: " + ", ".join(errors))
+        self.failures_dir.mkdir(parents=True, exist_ok=True)
+        path = self.failures_dir / (record["failure_id"] + ".json")
+        path.write_text(json.dumps(record, ensure_ascii=False, indent=2), encoding="utf-8")
+        return record
