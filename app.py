@@ -10,6 +10,7 @@ from app_health import health_response, readiness_response
 from observability.run import finish_run, record_error, persist_run
 from product.session_state import build_session_state
 from product.memory_inspector import inspect_memory
+from product.evaluation_lab import build_evaluation_lab
 
 app = Flask(__name__, static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
@@ -47,6 +48,14 @@ def memory_inspector(session_id):
         app.logger.exception("Memory inspection failed")
         return jsonify({"error": "Unable to inspect memory."}), 500
     return jsonify(result)
+
+@app.get("/evaluation")
+def evaluation_lab():
+    try:
+        return jsonify(build_evaluation_lab())
+    except Exception:
+        app.logger.exception("Evaluation lab failed")
+        return jsonify({"error": "Unable to load evaluation data."}), 500
 
 @app.post("/chat")
 def chat():
