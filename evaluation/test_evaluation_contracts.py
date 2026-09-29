@@ -3,6 +3,7 @@ import unittest
 from evaluation.evaluate_dialogue import evaluate
 from evaluation.run_generation_eval import build_judge_record, DIMENSIONS
 from evaluation.voice_evaluation import evaluate_operational_run
+from evaluation.integrated_eval import evaluate_runs
 
 class EvaluationContractTests(unittest.TestCase):
     def test_dialogue_evaluation_shape(self):
@@ -23,6 +24,11 @@ class EvaluationContractTests(unittest.TestCase):
         self.assertIsNone(result["total_latency_ms"])
         self.assertIsNone(result["voice_success"])
         self.assertEqual(result["status"], "not_measured")
+
+    def test_integrated_evaluation_handles_missing_runs(self):
+        result = evaluate_runs([])
+        self.assertEqual(result["status"], "blocked")
+        self.assertEqual(result["metrics"], {})
 
 if __name__ == "__main__":
     unittest.main()
