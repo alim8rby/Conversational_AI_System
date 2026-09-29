@@ -1,0 +1,14 @@
+[
+  {
+    "experiment_id": "EXP001",
+    "title": "Script-Based Language Detection",
+    "objective": "Eliminate false Arabic classifications for English messages containing digits.",
+    "hypothesis": "Language routing should use script evidence rather than digit presence.",
+    "baseline": {"measured_metrics": {"B005_language_detection": 0}},
+    "intervention": {"measured_metrics": {"B005_language_detection": 1}},
+    "metrics": ["B005_language_detection"],
+    "result": {"evidence": ["B005", "docs/experiments/EXP001.md"]},
+    "decision": "keep",
+    "status": "completed"
+  }
+]
