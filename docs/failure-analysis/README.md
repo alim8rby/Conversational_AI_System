@@ -38,3 +38,20 @@ Observed failure → classify → capture evidence → form hypothesis → exper
 ## Rule
 
 Every optimization should be traceable to a measured failure or a measurable product requirement. Do not create improvements without an evaluation target.
+
+
+## Implemented evidence layer
+
+The observability package now provides:
+
+- `FailureStore` for validated persisted failure records
+- filtering by category, stage, severity, and status
+- aggregation by category, stage, severity, and lifecycle status
+- conversion of run errors into structured failure records
+- run-level error aggregation
+
+The Failure Observatory is therefore an evidence layer, not merely a schema. UI and historical trend visualizations can consume this store without changing the underlying failure contract.
+
+## Failure hygiene
+
+Raw user input is not required to create a failure record. Evidence should prefer run IDs, stage metrics, exception classes/messages, and benchmark results. Sensitive conversational content should remain redacted unless explicitly required in a controlled debugging environment.
