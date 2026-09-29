@@ -17,11 +17,14 @@
   <header><h1>Conversational AI System</h1><p>Structured intake, contextual memory, and voice-enabled dialogue.</p></header>
   <section id="chat" aria-live="polite"></section>
   <aside id="state" aria-label="Session state">Session state: loading…</aside>
+  <aside id="evaluation" aria-label="Evaluation status">Evaluation: loading…</aside>
   <form id="form"><input id="input" autocomplete="off" placeholder="Type a message…"><button>Send</button></form>
 </main>
 <script>
 const state=document.querySelector("#state");
 const session=crypto.randomUUID(),chat=document.querySelector('#chat'),input=document.querySelector('#input');
+async function refreshEvaluation(){try{const r=await fetch('/evaluation');const e=await r.json();const d=e.evaluations.dialogue;state.textContent=state.textContent;evaluation.textContent='Evaluation: dialogue '+Math.round(d.metrics.deterministic_case_pass_rate*100)+'% · generation '+e.generation.status;}catch(err){evaluation.textContent='Evaluation unavailable';}}
+refreshEvaluation();
 async function refreshState(){try{const r=await fetch('/session/'+encodeURIComponent(session)+'/state');const s=await r.json();state.textContent='Session: '+s.status+' · '+Math.round(s.progress.completion_rate*100)+'% complete';}catch(e){state.textContent='Session state unavailable';}}
 refreshState();
 function add(text,role){const el=document.createElement('div');el.className='msg '+role;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;}
