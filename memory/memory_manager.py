@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import Dict, List
 
 from pinecone import Pinecone
 from together import Together
@@ -32,7 +32,7 @@ class MemoryManager:
             "metadata": {"session": session_id, "text": text},
         }])
 
-    def retrieve(self, session_id: str, query: str, k: int = 3) -> List[str]:
+    def retrieve(self, session_id: str, query: str, k: int = 3) -> List[Dict]:
         qvec = self._embed(query)
         results = self.index.query(
             vector=qvec,
@@ -42,7 +42,12 @@ class MemoryManager:
             filter={"session": {"$eq": session_id}},
         )
         return [
-            match.metadata["text"]
-            for match in results.matches
+            {
+                "text": match.metadata["text"],
+                "score": match.score,
+                "rank": rank,
+                "memory_id": match.id,
+            }
+            for rank, match in enumerate(results.matches, start=1)
             if match.metadata and match.metadata.get("text")
         ]
