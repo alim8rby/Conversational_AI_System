@@ -1,0 +1,10 @@
+{
+  "schema_version": "failure-v1",
+  "required_fields": [
+    "failure_id", "timestamp_utc", "category", "stage", "severity",
+    "expected_behavior", "actual_behavior", "evidence", "status"
+  ],
+  "categories": ["dialogue", "retrieval", "generation", "voice", "infrastructure"],
+  "statuses": ["open", "investigating", "resolved", "wont_fix"],
+  "severity_levels": ["low", "medium", "high", "critical"]
+}
