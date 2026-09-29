@@ -36,3 +36,41 @@ Each experiment should contain:
 - status
 - relevant failure IDs or benchmark cases
 - implementation commit
+
+
+## Executable comparison layer
+
+The registry is backed by `experiments/registry.json` and validated by
+`experiments/experiment_registry.py`.
+
+`experiments/experiment_runner.py` compares explicitly supplied measured
+baseline and intervention metrics. For numeric metrics it computes:
+
+```
+delta = intervention - baseline
+```
+
+Missing measurements produce `delta: null`; they are never treated as zero.
+
+### Controlled experiment contract
+
+Every completed experiment should make these artifacts discoverable:
+
+1. baseline behavior or metric
+2. intervention behavior or metric
+3. metric definition
+4. evidence reference
+5. implementation change
+6. decision
+7. validation status
+
+Provider-backed experiments remain blocked until the corresponding external
+services are available and the evaluation is actually executed.
+
+## EXP001
+
+EXP001 is registered as the first completed controlled experiment. Its
+documented B005 case changed from failure under the old language-routing rule
+to success under script-based routing. This is a controlled case outcome,
+not a claim that the entire repository benchmark was executed in the current
+environment.
