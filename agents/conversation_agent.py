@@ -183,12 +183,6 @@ class ConversationAgent:
             )
             answer = response.choices[0].message.content.strip()
             usage = getattr(response, "usage", None)
-            if usage is not None:
-                run["metrics"]["generation"]["token_usage"] = {
-                    "prompt_tokens": getattr(usage, "prompt_tokens", None),
-                    "completion_tokens": getattr(usage, "completion_tokens", None),
-                    "total_tokens": getattr(usage, "total_tokens", None),
-                }
         except Exception:
             latency = round((time.perf_counter() - generation_started) * 1000, 2)
             run["metrics"]["generation"] = {"generation_latency_ms": latency, "generation_error": True}
@@ -196,7 +190,16 @@ class ConversationAgent:
             finish_run(run, "failed")
             self.last_turn_metrics = run["metrics"]["generation"]
             return "Sorry, something went wrong. Please try again."
-        run["metrics"]["generation"] = {"generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2), "generation_error": False}
+        run["metrics"]["generation"] = {
+            "generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2),
+            "generation_error": False,
+        }
+        if usage is not None:
+            run["metrics"]["generation"]["token_usage"] = {
+                "prompt_tokens": getattr(usage, "prompt_tokens", None),
+                "completion_tokens": getattr(usage, "completion_tokens", None),
+                "total_tokens": getattr(usage, "total_tokens", None),
+            }
         self.last_turn_metrics = {**getattr(self, "last_turn_metrics", {}), **run["metrics"]["generation"]}
         finish_run(run)
 
