@@ -1,0 +1,43 @@
+{
+  "benchmark_version": "retrieval-v1",
+  "description": "Synthetic retrieval evaluation fixture for Precision@K, Recall@K, and MRR.",
+  "cases": [
+    {
+      "case_id": "R001",
+      "query": "The user works in finance and lives with family.",
+      "relevant_memory_ids": [
+        "m1",
+        "m2"
+      ],
+      "retrieved_memory_ids": [
+        "m1",
+        "m3",
+        "m2"
+      ]
+    },
+    {
+      "case_id": "R002",
+      "query": "The user previously mentioned anxiety about work.",
+      "relevant_memory_ids": [
+        "m4"
+      ],
+      "retrieved_memory_ids": [
+        "m5",
+        "m4",
+        "m6"
+      ]
+    },
+    {
+      "case_id": "R003",
+      "query": "The user prefers morning appointments.",
+      "relevant_memory_ids": [
+        "m7"
+      ],
+      "retrieved_memory_ids": [
+        "m8",
+        "m9",
+        "m10"
+      ]
+    }
+  ]
+}
