@@ -5,3 +5,4 @@ __pycache__/
 .env
 *.log
 static/tts/*.mp3
+observability/runs/*.json
