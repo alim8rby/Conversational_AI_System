@@ -1,6 +1,8 @@
 # Run-level observability helpers
 
 import json
+import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
@@ -8,7 +10,7 @@ from uuid import uuid4
 RUNS_DIR = Path(__file__).resolve().parent / "runs"
 
 
-def new_run(session_id, user_message, language):
+def new_run(session_id, user_message, language, metadata=None):
     return {
         "run_id": str(uuid4()),
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -16,13 +18,20 @@ def new_run(session_id, user_message, language):
         "user_message": user_message,
         "language": language,
         "status": "started",
+        "metadata": metadata or {},
         "metrics": {},
         "errors": [],
+        "_started_monotonic": time.perf_counter(),
     }
 
 
 def finish_run(run, status="success"):
     run["status"] = status
+    started = run.pop("_started_monotonic", None)
+    if started is not None:
+        run["metrics"]["total_latency_ms"] = round(
+            (time.perf_counter() - started) * 1000, 2
+        )
     persist_run(run)
     return run
 
