@@ -144,6 +144,17 @@ These do not all need to be separate production UI pages. They define the eviden
 
 ## 5. Data Contracts
 
+### Run observability
+
+Each conversational turn should produce one structured run record containing run identity, session, language, status, stage metrics, and errors. The record is the primary unit for tracing what happened during an interaction.
+
+Run observability does not replace evaluation. It supplies the evidence that evaluation and failure analysis consume.
+
+```text
+Turn → Run Record → Evaluation / Failure Analysis
+```
+
+
 The system should eventually record the following entities.
 
 ### Session
