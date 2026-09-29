@@ -6,10 +6,20 @@ from flask_cors import CORS
 
 from agents.conversation_agent import ConversationAgent
 from voice.voice_engine import VoiceEngine
+from app_health import health_response, readiness_response
 from observability.run import finish_run, record_error, persist_run
 
 app = Flask(__name__, static_folder="static")
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
 CORS(app)
+
+@app.get("/health")
+def health():
+    return health_response()
+
+@app.get("/ready")
+def ready():
+    return readiness_response()
 agent = ConversationAgent()
 voice = VoiceEngine(default_lang="en")
 
@@ -22,6 +32,8 @@ def chat():
     data = request.get_json(silent=True) or {}
     session_id = str(data.get("session", "")).strip()
     user_message = str(data.get("message", "")).strip()
+    if len(session_id) > 128 or len(user_message) > 4000:
+        return jsonify({"error": "Session ID or message exceeds the allowed size."}), 413
     if not session_id or not user_message:
         return jsonify({"error": "Session ID and message are required."}), 400
     request_started = time.perf_counter()
