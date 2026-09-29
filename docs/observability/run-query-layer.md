@@ -2,6 +2,21 @@
 
 The run store is the read-only evidence layer for persisted conversational runs.
 
+## Run metadata
+
+Each persisted run records reproducibility metadata without storing provider secrets:
+
+- application version
+- LLM model
+- embedding model
+- Pinecone index
+- prompt version
+- retrieval K
+- generation temperature
+- generation max tokens
+
+It also records total end-to-end latency in addition to stage-level latency.
+
 ## Supported queries
 
 - list all valid run records
