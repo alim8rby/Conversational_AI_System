@@ -13,5 +13,5 @@
     "max_tokens"
   ],
   "metric_groups": ["dialogue","retrieval","classification","generation","voice"],
-  "metric_fields": ["total_latency_ms"]
+  "metric_fields": ["total_latency_ms","generation.token_usage.prompt_tokens","generation.token_usage.completion_tokens","generation.token_usage.total_tokens"]
 }
