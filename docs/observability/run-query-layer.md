@@ -38,3 +38,12 @@ Operations UI / Failure Observatory
 ```
 
 This layer intentionally stays small. More advanced aggregation should be added only when a concrete monitoring requirement is identified.
+
+
+## Privacy
+
+Raw user input is redacted in persisted run records by default. Set `OBSERVABILITY_STORE_INPUT=true` only for an explicitly controlled debugging environment.
+
+## Latency
+
+`total_latency_ms` represents the complete API request path, including voice generation, when the Flask endpoint is used. Stage-specific latency remains available for classification, retrieval, generation, and voice.
