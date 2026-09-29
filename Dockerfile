@@ -19,4 +19,10 @@ COPY . .
 
 # 6. Expose port and start server
 EXPOSE 8000
+
+# Run as a non-root user in the container.
+RUN useradd --create-home --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 CMD ["python", "app.py"]
