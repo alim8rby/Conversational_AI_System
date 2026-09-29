@@ -7,6 +7,7 @@ from flask_cors import CORS
 from agents.conversation_agent import ConversationAgent
 from voice.voice_engine import VoiceEngine
 from app_health import health_response, readiness_response
+from config.settings import load_settings
 from observability.run import finish_run, record_error, persist_run
 from product.session_state import build_session_state
 from product.memory_inspector import inspect_memory
@@ -16,7 +17,16 @@ from product.operations import build_operations
 
 app = Flask(__name__, static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
-CORS(app)
+settings = load_settings(require_providers=False)
+CORS(app, resources={r"/*": {"origins": [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]}})
+
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 @app.get("/health")
 def health():
