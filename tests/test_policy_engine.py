@@ -29,6 +29,22 @@ class TestPolicyEngine(unittest.TestCase):
         self.assertEqual(decision.decision, "blocked")
         self.assertEqual(decision.policy, "credential_exfiltration")
 
+    def test_authorizes_declared_tool(self):
+        engine = PolicyEngine(allowed_tools=["order_lookup"])
+
+        decision = engine.authorize_tool("order_lookup")
+
+        self.assertEqual(decision.decision, "allowed")
+        self.assertEqual(decision.policy, "tool_authorization")
+
+    def test_blocks_undeclared_tool(self):
+        engine = PolicyEngine(allowed_tools=["order_lookup"])
+
+        decision = engine.authorize_tool("unregistered_tool")
+
+        self.assertEqual(decision.decision, "blocked")
+        self.assertEqual(decision.policy, "tool_authorization")
+
     def test_decision_is_serializable(self):
         decision = PolicyEngine().evaluate("Hello")
 
