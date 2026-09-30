@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from agents.conversation_agent import EMBED_MODEL, INDEX_NAME
+from agents.conversation_agent import EMBED_MODEL, MEMORY_STORE_PATH
 from memory.memory_manager import MemoryManager
 from run_retrieval_eval import precision_at_k, recall_at_k, reciprocal_rank
 
@@ -45,7 +45,7 @@ def main() -> None:
     if not os.getenv("OLLAMA_BASE_URL"):
         raise RuntimeError("OLLAMA_BASE_URL is required for live retrieval evaluation.")
 
-    manager = MemoryManager(embed_model=EMBED_MODEL, index_name=INDEX_NAME)
+    manager = MemoryManager(embed_model=EMBED_MODEL, store_path=MEMORY_STORE_PATH)
     result = evaluate_retriever(
         manager,
         args.session_id,
@@ -57,7 +57,7 @@ def main() -> None:
         "evaluation_type": "local-runtime",
         "session_id": args.session_id,
         "embedding_model": EMBED_MODEL,
-        "memory_store": INDEX_NAME,
+        "memory_store": MEMORY_STORE_PATH,
         "k": args.k,
         "result": result,
     }, indent=2))
