@@ -1,7 +1,7 @@
 # 1. Base image
 FROM python:3.11-slim
 
-# 2. System deps for gTTS and Together AI
+# 2. System deps for gTTS
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       libssl-dev libglib2.0-0 libnss3 libgdk-pixbuf2.0-0 \
