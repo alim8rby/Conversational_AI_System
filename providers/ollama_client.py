@@ -36,19 +36,26 @@ class OllamaClient:
                 "Make sure Ollama is running and the requested model is installed."
             ) from exc
 
-    def chat(self, messages: List[Dict[str, str]], temperature: float = 0.7, max_tokens: int = 250) -> Dict[str, Any]:
-        result = self._post(
-            "/api/chat",
-            {
-                "model": self.model,
-                "messages": messages,
-                "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens,
-                },
+    def chat(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: int = 250,
+        format: str | None = None,
+    ) -> Dict[str, Any]:
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_tokens,
             },
-        )
+        }
+        if format is not None:
+            payload["format"] = format
+
+        result = self._post("/api/chat", payload)
         return {
             "content": result.get("message", {}).get("content", "").strip(),
             "usage": {
