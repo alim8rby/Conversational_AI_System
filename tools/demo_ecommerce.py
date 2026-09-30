@@ -104,5 +104,17 @@ def order_lookup(order_id: str) -> Dict[str, Any]:
 
 
 def extract_product_query(text: str) -> Dict[str, Any]:
-    """Use the complete user request as the product-search query."""
-    return {"query": text.strip()}
+    """Extract a catalog identifier or known product name from a user request."""
+    normalized = text.strip()
+    upper_text = normalized.upper()
+
+    for product in PRODUCTS:
+        product_id = product["product_id"]
+        if product_id in upper_text:
+            return {"query": product_id}
+
+        product_name = product["name"]
+        if product_name.lower() in normalized.lower():
+            return {"query": product_name}
+
+    return {"query": normalized}
