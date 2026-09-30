@@ -13,7 +13,7 @@ from knowledge.context_builder import KnowledgeContextBuilder
 from knowledge.knowledge_base import KnowledgeBase
 from workflows.workflow_manager import WorkflowManager
 from tools.tool_manager import ToolManager
-from tools.demo_ecommerce import extract_order_id, order_lookup, product_search
+from tools.demo_ecommerce import extract_order_id, extract_product_query, order_lookup, product_search
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
 
@@ -75,8 +75,22 @@ class ConversationAgent:
         self.context_builder = KnowledgeContextBuilder()
         self.workflow_manager = WorkflowManager(self.domain, self.client)
         self.tools = ToolManager()
-        self.tools.register("product_search", product_search)
-        self.tools.register("order_lookup", order_lookup)
+        self.tools.register(
+            "product_search",
+            product_search,
+            required_inputs=("query",),
+            input_extractor=extract_product_query,
+            description="Search the product catalog.",
+        )
+        self.tools.register(
+            "order_lookup",
+            order_lookup,
+            required_inputs=("order_id",),
+            input_extractor=lambda text: {
+                "order_id": extract_order_id(text)
+            },
+            description="Retrieve the current status of a customer's order.",
+        )
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
         self.histories: Dict[str, List[dict]] = {}
@@ -269,31 +283,23 @@ class ConversationAgent:
 
         if required_tools:
             tool_id = required_tools[0]
+            tool_inputs = self.tools.prepare_inputs(tool_id, user_message)
+            missing_inputs = self.tools.missing_inputs(tool_id, tool_inputs)
 
-            if tool_id == "product_search":
-                tool_result = self.tools.execute(tool_id, query=user_message)
+            if missing_inputs:
+                run["metrics"]["tool"] = {
+                    "tool_id": tool_id,
+                    "status": "requires_input",
+                    "missing_input": missing_inputs[0],
+                }
+            else:
+                tool_result = self.tools.execute(tool_id, **tool_inputs)
                 run["metrics"]["tool"] = {
                     "tool_id": tool_id,
                     "status": "executed",
+                    "input": tool_inputs,
                     "result_found": tool_result.get("found"),
                 }
-
-            elif tool_id == "order_lookup":
-                order_id = extract_order_id(user_message)
-                if order_id is None:
-                    run["metrics"]["tool"] = {
-                        "tool_id": tool_id,
-                        "status": "requires_input",
-                        "missing_input": "order_id",
-                    }
-                else:
-                    tool_result = self.tools.execute(tool_id, order_id=order_id)
-                    run["metrics"]["tool"] = {
-                        "tool_id": tool_id,
-                        "status": "executed",
-                        "input": {"order_id": order_id},
-                        "result_found": tool_result.get("found"),
-                    }
 
         run["metrics"]["workflow"] = workflow_plan
         self.last_run = run
