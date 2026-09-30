@@ -86,9 +86,8 @@ class TestBaselineBenchmark(unittest.TestCase):
         self.assertTrue(manager.is_complete(session))
         self.assertEqual(manager.next_field(session), (None, None))
 
-    def test_answer_relevance_threshold(self):
-        # EXP002 measured relevant examples from 0.477 to 0.689 and
-        # irrelevant examples from 0.356 to 0.445.
+    def test_answer_relevance_threshold_is_historical_only(self):
+        # EXP002 threshold is retained for observability/history, not decision-making.
         self.assertEqual(ANSWER_RELEVANCE_THRESHOLD, 0.46)
 
     def test_session_start_sets_first_awaited_field(self):
@@ -116,14 +115,22 @@ class TestBaselineBenchmark(unittest.TestCase):
             "_semantic_similarity",
             side_effect=[0.70, 0.50],
         ) as similarity:
-            agent.ask(
-                session,
-                "I am 30 years old, work as a software developer, and live in Cairo.",
-            )
-            agent.ask(
-                session,
-                "I live with my family and have been working in this field for five years.",
-            )
+            with unittest.mock.patch.object(
+                agent.classifier,
+                "classify",
+                side_effect=[
+                    {"label": "answer", "reason": "Relevant personal information."},
+                    {"label": "answer", "reason": "Relevant additional context."},
+                ],
+            ):
+                agent.ask(
+                    session,
+                    "I am 30 years old, work as a software developer, and live in Cairo.",
+                )
+                agent.ask(
+                    session,
+                    "I live with my family and have been working in this field for five years.",
+                )
 
         self.assertEqual(
             agent.interviewer.sessions[session]["personal_info"]["additional_details"],
@@ -137,6 +144,101 @@ class TestBaselineBenchmark(unittest.TestCase):
             agent.awaiting[session],
             ("chief_complaint", "main"),
         )
+
+    def test_negative_response_is_accepted_and_advances(self):
+        agent = ConversationAgent(store_path="data/test_negative_classifier.json")
+        session = "B012"
+        agent.start_session(session)
+
+        with unittest.mock.patch.object(
+            agent,
+            "_semantic_similarity",
+            return_value=0.20,
+        ), unittest.mock.patch.object(
+            agent.classifier,
+            "classify",
+            return_value={
+                "label": "negative",
+                "reason": "The user reports no relevant information.",
+            },
+        ):
+            agent.ask(session, "nothing")
+
+        self.assertIsNone(
+            agent.interviewer.sessions[session]["personal_info"]["main"]
+        )
+        self.assertEqual(
+            agent.interviewer.sessions[session]["personal_info"]["additional_details"],
+            None,
+        )
+        self.assertEqual(
+            agent.awaiting[session],
+            ("personal_info", "additional_details"),
+        )
+        self.assertEqual(
+            agent.last_turn_metrics["classification_label"],
+            "negative",
+        )
+
+    def test_meta_response_does_not_advance(self):
+        agent = ConversationAgent(store_path="data/test_meta_classifier.json")
+        session = "B013"
+        agent.start_session(session)
+
+        with unittest.mock.patch.object(
+            agent,
+            "_semantic_similarity",
+            return_value=0.10,
+        ), unittest.mock.patch.object(
+            agent.classifier,
+            "classify",
+            return_value={
+                "label": "meta",
+                "reason": "The user is describing the test.",
+            },
+        ):
+            response = agent.ask(session, "I am just testing you")
+
+        self.assertEqual(
+            agent.awaiting[session],
+            ("personal_info", "main"),
+        )
+        self.assertIsNone(
+            agent.interviewer.sessions[session]["personal_info"]["main"]
+        )
+        self.assertIn("testing", response.lower())
+        self.assertEqual(
+            agent.last_turn_metrics["classification_label"],
+            "meta",
+        )
+
+    def test_off_topic_response_clarifies_without_advancing(self):
+        agent = ConversationAgent(store_path="data/test_off_topic_classifier.json")
+        session = "B014"
+        agent.start_session(session)
+
+        with unittest.mock.patch.object(
+            agent,
+            "_semantic_similarity",
+            return_value=0.10,
+        ), unittest.mock.patch.object(
+            agent.classifier,
+            "classify",
+            return_value={
+                "label": "off_topic",
+                "reason": "The response is unrelated to the question.",
+            },
+        ):
+            response = agent.ask(session, "The weather is strange today.")
+
+        self.assertEqual(
+            agent.awaiting[session],
+            ("personal_info", "main"),
+        )
+        self.assertIsNone(
+            agent.interviewer.sessions[session]["personal_info"]["main"]
+        )
+        self.assertTrue(response)
 
 
 if __name__ == "__main__":
