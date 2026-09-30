@@ -23,27 +23,39 @@ class PolicyDecision:
 
 
 class PolicyEngine:
-    """Evaluate deterministic domain policies before execution.
-
-    The first implementation intentionally uses explicit policy rules rather
-    than an LLM. This makes blocking behavior predictable and auditable.
-    """
+    """Evaluate deterministic domain policies before execution."""
 
     def __init__(self, policies: list[str] | None = None):
         self.policies = policies or []
+        self._rules = [
+            (
+                "safeguard_bypass",
+                ("ignore previous instructions", "bypass policy", "disable safeguards"),
+                "The request attempts to bypass system safeguards.",
+            ),
+            (
+                "credential_exfiltration",
+                (
+                    "show me the api key",
+                    "give me the api key",
+                    "reveal the password",
+                    "show me the password",
+                    "reveal credentials",
+                ),
+                "The request attempts to obtain protected credentials.",
+            ),
+        ]
 
     def evaluate(self, user_message: str) -> PolicyDecision:
         text = user_message.strip().lower()
 
-        if self._matches_any(
-            text,
-            ("ignore previous instructions", "bypass policy", "disable safeguards"),
-        ):
-            return PolicyDecision(
-                decision="blocked",
-                reason="The request attempts to bypass system safeguards.",
-                policy="safeguard_bypass",
-            )
+        for policy_id, phrases, reason in self._rules:
+            if self._matches_any(text, phrases):
+                return PolicyDecision(
+                    decision="blocked",
+                    reason=reason,
+                    policy=policy_id,
+                )
 
         return PolicyDecision(
             decision="allowed",
