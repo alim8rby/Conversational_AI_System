@@ -7,6 +7,7 @@ from typing import Dict, List, Tuple
 from providers.ollama_client import OllamaClient
 
 from agents.answer_classifier import AnswerClassifier
+from domains.domain_config import DomainConfig
 from interview_manager import InterviewManager
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
@@ -14,6 +15,10 @@ from observability.run import new_run, finish_run, record_error
 MODEL_NAME = os.getenv("LLM_MODEL", "llama3.2:3b")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
 MEMORY_STORE_PATH = os.getenv("MEMORY_STORE_PATH", "data/memory.json")
+DOMAIN_CONFIG_PATH = os.getenv(
+    "DOMAIN_CONFIG_PATH",
+    "domains/demo_ecommerce/domain.json",
+)
 APP_VERSION = os.getenv("APP_VERSION", os.getenv("GIT_COMMIT", "unknown"))
 PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
 RETRIEVAL_K = 3
@@ -49,6 +54,7 @@ class ConversationAgent:
         model_name: str = MODEL_NAME,
         embed_model: str = EMBED_MODEL,
         store_path: str = MEMORY_STORE_PATH,
+        domain_config_path: str = DOMAIN_CONFIG_PATH,
     ):
         self.client = OllamaClient(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
@@ -57,6 +63,7 @@ class ConversationAgent:
         )
         self.classifier = AnswerClassifier(self.client)
         self.model = model_name
+        self.domain = DomainConfig(domain_config_path)
         self.mem = MemoryManager(embed_model, store_path)
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
@@ -146,6 +153,8 @@ class ConversationAgent:
                 "retrieval_k": RETRIEVAL_K,
                 "temperature": GENERATION_TEMPERATURE,
                 "max_tokens": GENERATION_MAX_TOKENS,
+                "domain_id": self.domain.domain_id,
+                "domain_version": self.domain.data["version"],
             },
         )
         self.last_run = run
