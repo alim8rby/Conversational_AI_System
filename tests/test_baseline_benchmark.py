@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from agents.conversation_agent import ANSWER_RELEVANCE_THRESHOLD, detect_language, is_valid_answer
+from agents.conversation_agent import ANSWER_RELEVANCE_THRESHOLD, ConversationAgent, detect_language, is_valid_answer
 from interview_manager import InterviewManager
 
 
@@ -90,6 +90,21 @@ class TestBaselineBenchmark(unittest.TestCase):
         # EXP002 measured relevant examples from 0.477 to 0.689 and
         # irrelevant examples from 0.356 to 0.445.
         self.assertEqual(ANSWER_RELEVANCE_THRESHOLD, 0.46)
+
+    def test_session_start_sets_first_awaited_field(self):
+        agent = ConversationAgent(store_path="data/test_session_start.json")
+        session = "B009"
+        prompt = agent.start_session(session)
+
+        self.assertEqual(agent.awaiting[session], ("personal_info", "main"))
+        self.assertEqual(prompt, agent.interviewer.get_prompt(session))
+
+    def test_session_start_does_not_consume_user_input(self):
+        agent = ConversationAgent(store_path="data/test_session_start_input.json")
+        session = "B010"
+        agent.start_session(session)
+
+        self.assertIsNone(agent.interviewer.sessions[session]["personal_info"]["main"])
 
 
 if __name__ == "__main__":
