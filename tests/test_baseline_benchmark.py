@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from agents.conversation_agent import detect_language, is_valid_answer
+from agents.conversation_agent import ANSWER_RELEVANCE_THRESHOLD, detect_language, is_valid_answer
 from interview_manager import InterviewManager
 
 
@@ -85,6 +85,11 @@ class TestBaselineBenchmark(unittest.TestCase):
 
         self.assertTrue(manager.is_complete(session))
         self.assertEqual(manager.next_field(session), (None, None))
+
+    def test_answer_relevance_threshold(self):
+        # EXP002 measured relevant examples from 0.477 to 0.689 and
+        # irrelevant examples from 0.356 to 0.445.
+        self.assertEqual(ANSWER_RELEVANCE_THRESHOLD, 0.46)
 
 
 if __name__ == "__main__":
