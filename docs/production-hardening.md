@@ -1,39 +1,31 @@
 # Production Hardening
 
-## Scope
+The application includes baseline hardening for a local AI service.
 
-Point 5 hardens the existing API without changing model or retrieval behavior.
+## Configuration
 
-### Configuration
+- Centralized environment configuration.
+- Ollama URL and model configuration are validated.
+- No hosted AI credentials are required.
+- `PORT` is validated as a positive integer.
 
-- Centralized environment configuration in `config/settings.py`.
-- Required provider credentials are validated by readiness checks.
-- Numeric configuration such as `PORT` is validated.
-- Provider-independent unit tests can load configuration without credentials.
+## API boundaries
 
-### API boundaries
+- Session IDs: maximum 128 characters.
+- Messages: maximum 4,000 characters.
+- Request body: maximum 16 KiB.
+- Client errors remain generic.
+- Observability input is redacted by default.
 
-- `/chat` rejects missing session/message values.
-- Session IDs are bounded to 128 characters.
-- Messages are bounded to 4,000 characters.
-- Flask request bodies are bounded to 16 KiB.
-- Errors returned to clients remain generic while details are captured through application logging and run observability.
+## Health
 
-### Health and readiness
+- `GET /health` checks process health.
+- `GET /ready` checks required local AI configuration.
 
-- `GET /health` verifies process-level health.
-- `GET /ready` verifies required provider configuration and returns HTTP 503 when the application is not ready.
+## Container
 
-Health and readiness intentionally have different meanings: a running process can be healthy while not being ready to serve provider-backed traffic.
+The Docker image runs as a non-root user.
 
-### Container
+## Remaining deployment concerns
 
-The Docker image runs the application as a non-root user.
-
-### Privacy
-
-Observability continues to redact raw user input by default. Production debugging should use identifiers, metrics, and controlled evidence rather than storing conversational content unnecessarily.
-
-## Validation status
-
-Production-hardening tests have been added for configuration validation and health/readiness behavior. Full repository execution is still not claimed in this environment because outbound GitHub DNS/network access remains unavailable.
+For a real public deployment, add authentication/authorization, TLS, rate limiting, external secret management where needed, centralized logging, network policy, and an update policy for dependencies and base images.
