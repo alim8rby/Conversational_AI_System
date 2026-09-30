@@ -54,6 +54,7 @@ class TestAnswerClassifier(unittest.TestCase):
             '{"label":"refusal","reason":"The user declines to answer."}',
             '{"label":"answer","reason":"The user provides relevant personal information."}',
             '{"label":"off_topic","reason":"The response is unrelated to the question."}',
+            '{"label":"meta","reason":"The user is describing the test."}',
         ]
 
         client = FakeOllamaClient(responses)
