@@ -9,6 +9,8 @@ from providers.ollama_client import OllamaClient
 from agents.answer_classifier import AnswerClassifier
 from domains.domain_config import DomainConfig
 from interview_manager import InterviewManager
+from knowledge.context_builder import KnowledgeContextBuilder
+from knowledge.knowledge_base import KnowledgeBase
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
 
@@ -22,6 +24,7 @@ DOMAIN_CONFIG_PATH = os.getenv(
 APP_VERSION = os.getenv("APP_VERSION", os.getenv("GIT_COMMIT", "unknown"))
 PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
 RETRIEVAL_K = 3
+KNOWLEDGE_CONTEXT_MAX_CHARS = 4000
 GENERATION_TEMPERATURE = 0.7
 GENERATION_MAX_TOKENS = 250
 
@@ -65,6 +68,8 @@ class ConversationAgent:
         self.model = model_name
         self.domain = DomainConfig(domain_config_path)
         self.mem = MemoryManager(embed_model, store_path)
+        self.knowledge = KnowledgeBase(embed_model=embed_model)
+        self.context_builder = KnowledgeContextBuilder()
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
         self.histories: Dict[str, List[dict]] = {}
@@ -230,15 +235,32 @@ class ConversationAgent:
         sheet = self.interviewer.get_flat_sheet(session_id)
         retrieval_started = time.perf_counter()
         memories = self.mem.retrieve(session_id, user_message, k=RETRIEVAL_K)
+        knowledge_results = self.knowledge.retrieve(user_message, k=RETRIEVAL_K)
         retrieval_latency_ms = round((time.perf_counter() - retrieval_started) * 1000, 2)
+
+        knowledge_context = self.context_builder.build(
+            knowledge_results,
+            max_chars=KNOWLEDGE_CONTEXT_MAX_CHARS,
+        )
         run["metrics"]["retrieval"] = {
             "retrieval_latency_ms": retrieval_latency_ms,
-            "retrieved_count": len(memories),
+            "memory_count": len(memories),
+            "knowledge_count": len(knowledge_results),
+            "knowledge_included_count": knowledge_context["included_count"],
+            "knowledge_context_chars": knowledge_context["context_chars"],
+            "knowledge_sources": knowledge_context["sources"],
         }
         self.last_turn_metrics = run["metrics"]["retrieval"]
-        memory_context = "\n".join(item["text"] if isinstance(item, dict) else item for item in memories)
+
+        memory_context = "\n".join(
+            item["text"] if isinstance(item, dict) else item for item in memories
+        )
         system = (
-            "You are a concise conversational AI. Use the provided session information and relevant memory to maintain context. "
+            "You are a concise conversational AI. Use the provided session information, "
+            "relevant conversation memory, and domain knowledge to answer the user. "
+            "Treat domain knowledge as the source of truth for business facts. "
+            "Do not invent product availability, order status, or policy details. "
+            "If the available knowledge does not answer the question, say so rather than guessing. "
             "Do not claim to be a clinician, diagnose the user, or imply that this prototype replaces professional care."
         )
         messages = [
@@ -247,7 +269,12 @@ class ConversationAgent:
         ]
         messages.extend(self.histories[session_id])
         if memory_context:
-            messages.append({"role": "system", "content": "Relevant memory:\n" + memory_context})
+            messages.append({"role": "system", "content": "Relevant conversation memory:\n" + memory_context})
+        if knowledge_context["context"]:
+            messages.append({
+                "role": "system",
+                "content": "Relevant domain knowledge:\n" + knowledge_context["context"],
+            })
         messages.append({"role": "user", "content": user_message})
 
         generation_started = time.perf_counter()
