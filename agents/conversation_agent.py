@@ -302,6 +302,14 @@ class ConversationAgent:
             run["metrics"]["tool"] = {
                 "required_tools": required_tools,
                 "executions": tool_executions,
+                "failed_count": sum(
+                    execution["status"] == "failed"
+                    for execution in tool_executions
+                ),
+                "requires_input_count": sum(
+                    execution["status"] == "requires_input"
+                    for execution in tool_executions
+                ),
             }
 
             successful_results = [
@@ -311,6 +319,20 @@ class ConversationAgent:
             ]
             if successful_results:
                 tool_result = successful_results[0]
+
+            failed_tools = [
+                execution
+                for execution in tool_executions
+                if execution["status"] == "failed"
+            ]
+            if failed_tools:
+                run["metrics"]["tool"]["errors"] = [
+                    {
+                        "tool_id": execution["tool_id"],
+                        "error": execution["error"],
+                    }
+                    for execution in failed_tools
+                ]
 
         run["metrics"]["workflow"] = workflow_plan
         self.last_run = run
