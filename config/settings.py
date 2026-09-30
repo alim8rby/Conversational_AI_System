@@ -37,7 +37,7 @@ class Settings:
     cors_origins: str
 
 
-def load_settings(require_providers: bool = True) -> Settings:
+def load_settings(require_runtime: bool = True) -> Settings:
     return Settings(
         ollama_base_url=_required("OLLAMA_BASE_URL") if require_providers else os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         llm_model=os.getenv("LLM_MODEL", "llama3.2:3b"),
