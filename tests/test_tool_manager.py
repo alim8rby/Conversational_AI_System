@@ -93,6 +93,68 @@ class TestToolManager(unittest.TestCase):
             ["executed", "executed"],
         )
 
+    def test_tool_exception_becomes_structured_failure(self):
+        self.manager.register(
+            "broken",
+            lambda value: (_ for _ in ()).throw(RuntimeError("service unavailable")),
+            required_inputs=("value",),
+            input_extractor=lambda text: {"value": text},
+        )
+
+        result = self.manager.prepare_and_execute("broken", "hello")
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["error"]["type"], "tool_execution_error")
+        self.assertEqual(result["error"]["message"], "service unavailable")
+        self.assertIn("latency_ms", result)
+
+    def test_invalid_tool_output_becomes_structured_failure(self):
+        self.manager.register(
+            "invalid",
+            lambda value: "not a dictionary",
+            required_inputs=("value",),
+            input_extractor=lambda text: {"value": text},
+        )
+
+        result = self.manager.prepare_and_execute("invalid", "hello")
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["error"]["type"], "tool_execution_error")
+        self.assertIn("dictionary", result["error"]["message"])
+
+    def test_input_extractor_failure_becomes_structured_failure(self):
+        self.manager.register(
+            "bad_extractor",
+            lambda value: {"value": value},
+            required_inputs=("value",),
+            input_extractor=lambda text: (_ for _ in ()).throw(ValueError("cannot parse input")),
+        )
+
+        result = self.manager.prepare_and_execute("bad_extractor", "hello")
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["error"]["type"], "input_extraction_error")
+        self.assertEqual(result["error"]["message"], "cannot parse input")
+
+    def test_execute_required_isolates_tool_failures(self):
+        self.manager.register(
+            "broken",
+            lambda query: (_ for _ in ()).throw(RuntimeError("broken")),
+            required_inputs=("query",),
+            input_extractor=lambda text: {"query": text},
+        )
+        self.manager.register(
+            "healthy",
+            lambda query: {"ok": query},
+            required_inputs=("query",),
+            input_extractor=lambda text: {"query": text},
+        )
+
+        results = self.manager.execute_required(["broken", "healthy"], "hello")
+
+        self.assertEqual(results[0]["status"], "failed")
+        self.assertEqual(results[1]["status"], "executed")
+
     def test_product_search(self):
         result = product_search("TrailRunner")
 
