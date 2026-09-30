@@ -52,6 +52,21 @@ def session_state(session_id):
         return jsonify({"error": "Invalid session ID."}), 400
     return jsonify(build_session_state(agent.interviewer, session_id))
 
+@app.post("/session/<session_id>/start")
+def start_session(session_id):
+    if not session_id.strip() or len(session_id) > 128:
+        return jsonify({"error": "Invalid session ID."}), 400
+    data = request.get_json(silent=True) or {}
+    lang = str(data.get("lang", "en")).strip().lower()
+    if lang not in {"en", "ar"}:
+        return jsonify({"error": "Language must be 'en' or 'ar'."}), 400
+    try:
+        reply = agent.start_session(session_id, lang)
+        return jsonify({"reply": reply})
+    except Exception:
+        app.logger.exception("Session start failed")
+        return jsonify({"error": "Unable to start the session."}), 500
+
 @app.get("/session/<session_id>/memory")
 def memory_inspector(session_id):
     query = request.args.get("q", "").strip()
