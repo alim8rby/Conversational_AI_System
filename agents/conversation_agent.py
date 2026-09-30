@@ -12,6 +12,8 @@ from interview_manager import InterviewManager
 from knowledge.context_builder import KnowledgeContextBuilder
 from knowledge.knowledge_base import KnowledgeBase
 from workflows.workflow_manager import WorkflowManager
+from tools.tool_manager import ToolManager
+from tools.demo_ecommerce import order_lookup, product_search
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
 
@@ -72,6 +74,9 @@ class ConversationAgent:
         self.knowledge = KnowledgeBase(embed_model=embed_model)
         self.context_builder = KnowledgeContextBuilder()
         self.workflow_manager = WorkflowManager(self.domain, self.client)
+        self.tools = ToolManager()
+        self.tools.register("product_search", product_search)
+        self.tools.register("order_lookup", order_lookup)
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
         self.histories: Dict[str, List[dict]] = {}
@@ -254,6 +259,29 @@ class ConversationAgent:
         workflow_plan["workflow_latency_ms"] = round(
             (time.perf_counter() - workflow_started) * 1000, 2
         )
+
+        tool_result = None
+        required_tools = [
+            requirement
+            for requirement in workflow_plan.get("requires", [])
+            if requirement in self.tools.tool_ids
+        ]
+
+        if required_tools:
+            tool_id = required_tools[0]
+            if tool_id == "product_search":
+                tool_result = self.tools.execute(tool_id, query=user_message)
+            elif tool_id == "order_lookup":
+                run["metrics"]["tool"] = {
+                    "tool_id": tool_id,
+                    "status": "requires_order_id",
+                }
+            run["metrics"]["tool"] = {
+                "tool_id": tool_id,
+                "status": "executed" if tool_result is not None else "requires_input",
+                "result_found": tool_result.get("found") if tool_result else None,
+            }
+
         run["metrics"]["workflow"] = workflow_plan
         self.last_run = run
         self.last_turn_metrics = run["metrics"]["workflow"]
@@ -297,6 +325,12 @@ class ConversationAgent:
         messages.extend(self.histories[session_id])
         if memory_context:
             messages.append({"role": "system", "content": "Relevant conversation memory:\n" + memory_context})
+        if tool_result is not None:
+            messages.append({
+                "role": "system",
+                "content": "Verified tool result:
+" + str(tool_result),
+            })
         if knowledge_context["context"]:
             messages.append({
                 "role": "system",
