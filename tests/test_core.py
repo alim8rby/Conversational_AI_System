@@ -50,7 +50,7 @@ class TestConversationCore(unittest.TestCase):
                 "application_version": "test",
                 "model": "test-model",
                 "embedding_model": "test-embed",
-                "pinecone_index": "test-index",
+                "memory_store": "data/test-memory.json",
                 "prompt_version": "v1",
                 "retrieval_k": 3,
                 "temperature": 0.7,
