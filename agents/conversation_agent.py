@@ -4,15 +4,15 @@ import re
 import time
 from typing import Dict, List, Tuple
 
-from together import Together
+from providers.ollama_client import OllamaClient
 
 from interview_manager import InterviewManager
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
 
-MODEL_NAME = os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo")
-EMBED_MODEL = os.getenv("EMBED_MODEL", "togethercomputer/m2-bert-80M-8k-retrieval")
-INDEX_NAME = os.getenv("PINECONE_INDEX", "conversation-memory")
+MODEL_NAME = os.getenv("LLM_MODEL", "llama3.2:3b")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
+INDEX_NAME = os.getenv("MEMORY_STORE_PATH", "data/memory.json")
 APP_VERSION = os.getenv("APP_VERSION", os.getenv("GIT_COMMIT", "unknown"))
 PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
 RETRIEVAL_K = 3
@@ -40,7 +40,7 @@ class ConversationAgent:
     """Stateful conversational agent combining structured intake and semantic memory."""
 
     def __init__(self, model_name: str = MODEL_NAME, embed_model: str = EMBED_MODEL, index_name: str = INDEX_NAME):
-        self.client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
+        self.client = OllamaClient(base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"), model=model_name, embed_model=embed_model)
         self.model = model_name
         self.mem = MemoryManager(embed_model, index_name)
         self.interviewer = InterviewManager()
@@ -50,11 +50,7 @@ class ConversationAgent:
 
     def _semantic_similarity(self, question: str, answer: str) -> float:
         try:
-            response = self.client.embeddings.create(
-                model=self.mem.embed_model,
-                input=[question, answer],
-            )
-            qvec, avec = response.data[0].embedding, response.data[1].embedding
+            qvec, avec = self.client.embed([question, answer])
             dot = sum(q * a for q, a in zip(qvec, avec))
             qmag = math.sqrt(sum(q * q for q in qvec))
             amag = math.sqrt(sum(a * a for a in avec))
@@ -65,8 +61,7 @@ class ConversationAgent:
     def _classify_answer(self, question: str, answer: str, lang: str) -> bool:
         system = "Does the answer address the question? Reply only YES or NO." if lang == "en" else "هل تجيب الإجابة على السؤال؟ أجب فقط بنعم أو لا."
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
+            response = self.client.chat(
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": f"Question: {question}\nAnswer: {answer}"},
@@ -74,7 +69,7 @@ class ConversationAgent:
                 max_tokens=3,
                 temperature=0.0,
             )
-            result = response.choices[0].message.content.strip().lower()
+            result = response["content"].strip().lower()
             return result.startswith("yes") or result.startswith("نعم")
         except Exception:
             return False
@@ -107,7 +102,7 @@ class ConversationAgent:
                 "application_version": APP_VERSION,
                 "model": self.model,
                 "embedding_model": self.mem.embed_model,
-                "pinecone_index": INDEX_NAME,
+                "memory_store": INDEX_NAME,
                 "prompt_version": PROMPT_VERSION,
                 "retrieval_k": RETRIEVAL_K,
                 "temperature": GENERATION_TEMPERATURE,
@@ -175,14 +170,13 @@ class ConversationAgent:
 
         generation_started = time.perf_counter()
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
+            response = self.client.chat(
                 messages=messages,
                 max_tokens=GENERATION_MAX_TOKENS,
                 temperature=GENERATION_TEMPERATURE,
             )
-            answer = response.choices[0].message.content.strip()
-            usage = getattr(response, "usage", None)
+            answer = response["content"]
+            usage = response.get("usage")
         except Exception:
             latency = round((time.perf_counter() - generation_started) * 1000, 2)
             run["metrics"]["generation"] = {"generation_latency_ms": latency, "generation_error": True}
@@ -196,9 +190,9 @@ class ConversationAgent:
         }
         if usage is not None:
             run["metrics"]["generation"]["token_usage"] = {
-                "prompt_tokens": getattr(usage, "prompt_tokens", None),
-                "completion_tokens": getattr(usage, "completion_tokens", None),
-                "total_tokens": getattr(usage, "total_tokens", None),
+                "prompt_tokens": usage.get("prompt_tokens"),
+                "completion_tokens": usage.get("completion_tokens"),
+                "total_tokens": usage.get("total_tokens"),
             }
         self.last_turn_metrics = {**getattr(self, "last_turn_metrics", {}), **run["metrics"]["generation"]}
         finish_run(run)
