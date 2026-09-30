@@ -11,6 +11,14 @@ class TestBaselineBenchmark(unittest.TestCase):
         with open("evaluation/benchmark_v1.json", encoding="utf-8") as handle:
             cls.benchmark = json.load(handle)
 
+    @staticmethod
+    def _intake_agent(store_path):
+        agent = ConversationAgent(store_path=store_path)
+        # These benchmark cases exercise the generic structured-intake engine.
+        # The active demo domain intentionally has intake disabled.
+        agent.intake_enabled = True
+        return agent
+
     def test_benchmark_version(self):
         self.assertEqual(self.benchmark["benchmark_version"], "v1.0")
 
@@ -48,8 +56,6 @@ class TestBaselineBenchmark(unittest.TestCase):
         section, field = manager.next_field(session)
         self.assertEqual((section, field), ("personal_info", "main"))
 
-        # Provider-dependent relevance classification is excluded from this
-        # deterministic baseline test. Verify the state contract directly.
         self.assertFalse(is_valid_answer("k"))
         self.assertEqual(manager.next_field(session), (section, field))
 
@@ -87,11 +93,10 @@ class TestBaselineBenchmark(unittest.TestCase):
         self.assertEqual(manager.next_field(session), (None, None))
 
     def test_answer_relevance_threshold_is_historical_only(self):
-        # EXP002 threshold is retained for observability/history, not decision-making.
         self.assertEqual(ANSWER_RELEVANCE_THRESHOLD, 0.46)
 
     def test_session_start_sets_first_awaited_field(self):
-        agent = ConversationAgent(store_path="data/test_session_start.json")
+        agent = self._intake_agent("data/test_session_start.json")
         session = "B009"
         prompt = agent.start_session(session)
 
@@ -99,14 +104,14 @@ class TestBaselineBenchmark(unittest.TestCase):
         self.assertEqual(prompt, agent.interviewer.get_prompt(session))
 
     def test_session_start_does_not_consume_user_input(self):
-        agent = ConversationAgent(store_path="data/test_session_start_input.json")
+        agent = self._intake_agent("data/test_session_start_input.json")
         session = "B010"
         agent.start_session(session)
 
         self.assertIsNone(agent.interviewer.sessions[session]["personal_info"]["main"])
 
     def test_additional_details_validate_against_parent_section(self):
-        agent = ConversationAgent(store_path="data/test_additional_details.json")
+        agent = self._intake_agent("data/test_additional_details.json")
         session = "B011"
         agent.start_session(session)
 
@@ -146,7 +151,7 @@ class TestBaselineBenchmark(unittest.TestCase):
         )
 
     def test_negative_response_is_accepted_and_advances(self):
-        agent = ConversationAgent(store_path="data/test_negative_classifier.json")
+        agent = self._intake_agent("data/test_negative_classifier.json")
         session = "B012"
         agent.start_session(session)
 
@@ -181,7 +186,7 @@ class TestBaselineBenchmark(unittest.TestCase):
         )
 
     def test_meta_response_does_not_advance(self):
-        agent = ConversationAgent(store_path="data/test_meta_classifier.json")
+        agent = self._intake_agent("data/test_meta_classifier.json")
         session = "B013"
         agent.start_session(session)
 
@@ -213,7 +218,7 @@ class TestBaselineBenchmark(unittest.TestCase):
         )
 
     def test_off_topic_response_clarifies_without_advancing(self):
-        agent = ConversationAgent(store_path="data/test_off_topic_classifier.json")
+        agent = self._intake_agent("data/test_off_topic_classifier.json")
         session = "B014"
         agent.start_session(session)
 
