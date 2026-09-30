@@ -25,8 +25,13 @@ class PolicyDecision:
 class PolicyEngine:
     """Evaluate deterministic domain policies before execution."""
 
-    def __init__(self, policies: list[str] | None = None):
+    def __init__(
+        self,
+        policies: list[str] | None = None,
+        allowed_tools: list[str] | None = None,
+    ):
         self.policies = policies or []
+        self.allowed_tools = set(allowed_tools or [])
         self._rules = [
             (
                 "safeguard_bypass",
@@ -60,6 +65,21 @@ class PolicyEngine:
         return PolicyDecision(
             decision="allowed",
             reason="No configured blocking policy matched the request.",
+        )
+
+    def authorize_tool(self, tool_id: str) -> PolicyDecision:
+        """Check whether a registered tool is authorized by the active domain."""
+        if tool_id not in self.allowed_tools:
+            return PolicyDecision(
+                decision="blocked",
+                reason=f"Tool '{tool_id}' is not authorized by the active domain.",
+                policy="tool_authorization",
+            )
+
+        return PolicyDecision(
+            decision="allowed",
+            reason=f"Tool '{tool_id}' is authorized by the active domain.",
+            policy="tool_authorization",
         )
 
     @staticmethod
