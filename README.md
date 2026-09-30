@@ -69,9 +69,9 @@ The project is intentionally more than a chatbot demo: it demonstrates how to **
 | Layer | Technology |
 |---|---|
 | Application | Python, Flask |
-| LLM | Together AI |
+| LLM | Ollama |
 | Embeddings | Together AI |
-| Vector memory | Pinecone |
+| Vector memory | Local JSON vector store |
 | Voice | gTTS |
 | Frontend | HTML / CSS / JavaScript |
 | Container | Docker |
@@ -337,7 +337,7 @@ Deployment-level requirements that remain outside the demo repository include:
 ├── config/                  # Centralized configuration
 ├── evaluation/              # Evaluation engines and benchmarks
 ├── experiments/             # Controlled experiment registry
-├── memory/                  # Pinecone semantic memory
+├── memory/                  # Local semantic memory
 ├── observability/           # Run and failure evidence
 ├── product/                 # Product-facing projections
 ├── prompts/                 # Prompt resources
@@ -376,9 +376,8 @@ Deployment-level requirements that remain outside the demo repository include:
 ## Requirements
 
 - Python 3.11
-- Together AI credentials
-- Pinecone credentials
-- a configured Pinecone index
+- Ollama installed and running
+- the selected local Ollama models
 
 ## Setup
 
@@ -392,9 +391,10 @@ cp .env.example .env
 Configure:
 
 ```text
-TOGETHER_API_KEY=...
-PINECONE_API_KEY=...
-PINECONE_INDEX=conversation-memory
+OLLAMA_BASE_URL=http://localhost:11434
+LLM_MODEL=llama3.2:3b
+EMBED_MODEL=nomic-embed-text
+MEMORY_STORE_PATH=data/memory.json
 ```
 
 Run:
@@ -460,12 +460,12 @@ All twelve phases are now structurally complete.
 
 This repository distinguishes **implemented artifacts** from **runtime-verified measurements**.
 
-The current development environment could inspect and modify the GitHub repository but could not establish outbound GitHub DNS/network connectivity for a full local execution cycle.
+The application is designed to run locally without paid AI provider credentials. External network access is only required by optional voice generation through gTTS.
 
 Therefore this project does **not** fabricate:
 
 - fresh benchmark scores
-- provider-backed retrieval scores
+- external-provider retrieval scores
 - generation-quality scores
 - live latency measurements
 - successful CI execution claims
