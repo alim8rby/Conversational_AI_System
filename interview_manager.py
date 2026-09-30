@@ -54,11 +54,19 @@ class InterviewManager:
         if not section:
             return None
         if field == "main":
-            prompt = SECTION_QUESTIONS[section]
-        else:
-            prompt = SUBFIELD_LABELS.get(field, SECTION_QUESTIONS[section])
+            return self.get_section_prompt(section, lang)
+        prompt = SUBFIELD_LABELS.get(field, SECTION_QUESTIONS[section])
         if lang == "ar":
             return self._arabic_prompt(section, field, prompt)
+        return prompt
+
+    def get_section_prompt(self, section: str, lang: str = "en") -> Optional[str]:
+        """Return the main question for a section in the requested language."""
+        if section not in SECTION_QUESTIONS:
+            return None
+        prompt = SECTION_QUESTIONS[section]
+        if lang == "ar":
+            return self._arabic_prompt(section, "main", prompt)
         return prompt
 
     @staticmethod
