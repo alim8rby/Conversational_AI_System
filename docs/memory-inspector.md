@@ -1,47 +1,32 @@
 # Memory Inspector
 
-## Purpose
-
-The Memory Inspector makes retrieval behavior inspectable without changing retrieval behavior or exposing vector values.
+The Memory Inspector makes local semantic retrieval visible without exposing embedding vectors.
 
 ## API
 
 `GET /session/<session_id>/memory?q=<query>&k=3`
 
-The response uses `memory-inspector-v1` and includes:
+Returns:
 
 - session ID
 - query
-- requested top-k
+- requested K
 - retrieved count
 - memory ID
 - rank
-- retrieval score
+- cosine similarity score
 - retrieved text
-
-Vector values are intentionally excluded.
 
 ## Architecture
 
 ```
-Browser / evaluator
-       |
-       v
-Memory Inspector API
-       |
-       v
-MemoryManager.retrieve()
-       |
-       v
-Pinecone
+Query
+  ↓
+Memory Inspector
+  ↓
+MemoryManager
+  ↓
+Ollama embeddings + local memory
 ```
 
-The inspector is read-only. It is an observability/product surface over the existing retrieval contract.
-
-## Evaluation relationship
-
-The inspector's memory IDs, ranks, and scores are the same evidence consumed by retrieval evaluation. This creates a traceable path:
-
-`Query → Retrieved IDs → Rank/Score → Retrieval Metrics`
-
-The synthetic retrieval benchmark validates the metric implementation; the inspector itself does not imply production retrieval quality.
+The inspector is read-only and exposes the same memory IDs and rankings used by retrieval evaluation.
