@@ -60,7 +60,25 @@ class DomainConfig:
 
     @property
     def workflows(self) -> list[str]:
-        return self.data.get("workflows", [])
+        """Return configured workflow IDs for backwards compatibility."""
+        workflows = self.data.get("workflows", [])
+        return [
+            item if isinstance(item, str) else item.get("id")
+            for item in workflows
+            if isinstance(item, str) or isinstance(item, dict) and item.get("id")
+        ]
+
+    @property
+    def workflow_definitions(self) -> list[Dict[str, Any]]:
+        """Return full workflow definitions for the execution layer."""
+        workflows = self.data.get("workflows", [])
+        return [
+            {"id": item, "description": item.replace("_", " "), "requires": []}
+            if isinstance(item, str)
+            else item
+            for item in workflows
+            if isinstance(item, str) or isinstance(item, dict)
+        ]
 
     @property
     def tools(self) -> list[Dict[str, Any]]:
