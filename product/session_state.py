@@ -3,7 +3,31 @@
 from interview_manager import InterviewManager, SECTIONS, SUBFIELDS
 
 
-def build_session_state(manager: InterviewManager, session_id: str) -> dict:
+def build_session_state(
+    manager: InterviewManager,
+    session_id: str,
+    *,
+    intake_enabled: bool = True,
+    assistant_name: str = "",
+) -> dict:
+    if not intake_enabled:
+        return {
+            "schema_version": "session-state-v1",
+            "session_id": session_id,
+            "status": "ready",
+            "assistant": assistant_name,
+            "progress": {
+                "completed_fields": 0,
+                "total_fields": 0,
+                "completion_rate": 0.0,
+            },
+            "current": {
+                "section": None,
+                "field": None,
+            },
+            "sections": [],
+        }
+
     manager.init_session(session_id)
     section, field = manager.next_field(session_id)
     session = manager.sessions[session_id]
