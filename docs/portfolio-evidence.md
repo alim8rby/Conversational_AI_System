@@ -3,28 +3,21 @@
 | Portfolio claim | Repository evidence |
 |---|---|
 | Stateful conversation | `interview_manager.py`, `agents/conversation_agent.py` |
+| Local LLM and embeddings | `providers/ollama_client.py` |
 | Semantic memory | `memory/memory_manager.py` |
 | Memory inspection | `product/memory_inspector.py` |
 | Reproducible evaluation | `evaluation/` |
-| Failure analysis | `observability/failure_store.py`, `product/failure_observatory.py` |
+| Failure analysis | `observability/`, `product/failure_observatory.py` |
 | Controlled experiments | `experiments/` |
 | Session-state product surface | `product/session_state.py` |
 | Evaluation product surface | `product/evaluation_lab.py` |
-| Operations product surface | `product/operations.py` |
-| Production hardening | `config/`, `app_health.py`, `docs/production-hardening.md` |
-| Security baseline | `docs/security.md`, `app.py`, `.env.example` |
+| Operations surface | `product/operations.py` |
+| Production hardening | `config/`, `app_health.py` |
+| Security baseline | `docs/security.md`, `app.py` |
 | CI/CD | `.github/workflows/ci.yml` |
 | Containerization | `Dockerfile` |
 | Browser demo | `static/index.html` |
 
 ## Evidence rule
 
-Portfolio descriptions should distinguish between:
-
-- implemented code
-- documented architecture
-- deterministic local evaluation
-- provider-dependent evaluation
-- runtime verification
-
-Never claim a metric or deployment result without the corresponding evidence.
+Distinguish implemented code, deterministic evaluation, Ollama-dependent evaluation, and runtime verification. Never claim a metric without its corresponding evidence.
