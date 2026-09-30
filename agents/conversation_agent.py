@@ -292,6 +292,7 @@ class ConversationAgent:
         messages = [
             {"role": "system", "content": system},
             {"role": "system", "content": "Session information:\n" + sheet},
+            {"role": "system", "content": "Workflow plan:\n" + str(workflow_plan)},
         ]
         messages.extend(self.histories[session_id])
         if memory_context:
