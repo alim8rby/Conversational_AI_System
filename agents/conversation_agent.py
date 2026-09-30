@@ -13,7 +13,7 @@ from knowledge.context_builder import KnowledgeContextBuilder
 from knowledge.knowledge_base import KnowledgeBase
 from workflows.workflow_manager import WorkflowManager
 from tools.tool_manager import ToolManager
-from tools.demo_ecommerce import extract_order_id, extract_product_query, order_lookup, product_search
+from tools.domain_tool_registry import register_domain_tools
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
 from policies.policy_engine import PolicyEngine
@@ -78,22 +78,7 @@ class ConversationAgent:
         self.context_builder = KnowledgeContextBuilder()
         self.workflow_manager = WorkflowManager(self.domain, self.client)
         self.tools = ToolManager(default_timeout_seconds=TOOL_TIMEOUT_SECONDS)
-        self.tools.register(
-            "product_search",
-            product_search,
-            required_inputs=("query",),
-            input_extractor=extract_product_query,
-            description="Search the product catalog.",
-        )
-        self.tools.register(
-            "order_lookup",
-            order_lookup,
-            required_inputs=("order_id",),
-            input_extractor=lambda text: {
-                "order_id": extract_order_id(text)
-            },
-            description="Retrieve the current status of a customer's order.",
-        )
+        register_domain_tools(self.tools, self.domain.tools)
         # Structured intake is optional; the active domain decides whether it is enabled.
         self.intake_enabled = self.domain.intake_enabled
         self.interviewer = InterviewManager()
