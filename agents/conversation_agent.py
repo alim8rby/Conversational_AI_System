@@ -282,24 +282,22 @@ class ConversationAgent:
         ]
 
         if required_tools:
-            tool_id = required_tools[0]
-            tool_inputs = self.tools.prepare_inputs(tool_id, user_message)
-            missing_inputs = self.tools.missing_inputs(tool_id, tool_inputs)
+            tool_executions = self.tools.execute_required(
+                required_tools,
+                user_message,
+            )
+            run["metrics"]["tool"] = {
+                "required_tools": required_tools,
+                "executions": tool_executions,
+            }
 
-            if missing_inputs:
-                run["metrics"]["tool"] = {
-                    "tool_id": tool_id,
-                    "status": "requires_input",
-                    "missing_input": missing_inputs[0],
-                }
-            else:
-                tool_result = self.tools.execute(tool_id, **tool_inputs)
-                run["metrics"]["tool"] = {
-                    "tool_id": tool_id,
-                    "status": "executed",
-                    "input": tool_inputs,
-                    "result_found": tool_result.get("found"),
-                }
+            successful_results = [
+                execution["result"]
+                for execution in tool_executions
+                if execution["status"] == "executed"
+            ]
+            if successful_results:
+                tool_result = successful_results[0]
 
         run["metrics"]["workflow"] = workflow_plan
         self.last_run = run
