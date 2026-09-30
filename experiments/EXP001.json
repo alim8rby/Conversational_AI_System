@@ -18,7 +18,7 @@
   },
   "metrics": ["B005_language_detection"],
   "result": {
-    "evidence": ["B005", "docs/experiments/EXP001.md"],
+    "evidence": ["B005", "experiments/EXP001.md"],
     "note": "Values represent the documented controlled case outcome, not a full repository execution."
   },
   "decision": "keep",
