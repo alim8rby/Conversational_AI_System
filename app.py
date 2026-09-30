@@ -21,7 +21,7 @@ from product.operations import build_operations
 
 app = Flask(__name__, static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
-settings = load_settings(require_providers=False)
+settings = load_settings(require_runtime=False)
 CORS(app, resources={r"/*": {"origins": [origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()]}})
 
 @app.after_request
