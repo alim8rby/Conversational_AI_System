@@ -415,8 +415,7 @@ class ConversationAgent:
         if tool_result is not None:
             messages.append({
                 "role": "system",
-                "content": "Verified tool result:
-" + str(tool_result),
+                "content": "Verified tool result:\n" + str(tool_result),
             })
         if knowledge_context["context"]:
             messages.append({
