@@ -5,13 +5,15 @@ from __future__ import annotations
 import os
 from typing import Dict, List
 
+from domains.domain_config import DomainConfig
+
 from knowledge.document_loader import DocumentLoader
 from knowledge.vector_store import LocalVectorStore
 from providers.ollama_client import OllamaClient
 
 
 class KnowledgeBase:
-    """Coordinate document loading, embedding, indexing, and retrieval."""
+    """Coordinate domain sources, embedding, indexing, and retrieval."""
 
     def __init__(
         self,
@@ -30,7 +32,7 @@ class KnowledgeBase:
         self.loader = DocumentLoader()
         self.store = LocalVectorStore(store_path)
 
-    def index_directory(self, path: str) -> int:
+    def index_directory(self, path: str, source_id: str | None = None) -> int:
         chunks = self.loader.load_and_chunk(path)
         if not chunks:
             return 0
@@ -42,6 +44,7 @@ class KnowledgeBase:
             records.append(
                 {
                     **chunk,
+                    "knowledge_source": source_id,
                     "vector": vector,
                     "embedding_model": self.embed_model,
                 }
@@ -49,6 +52,31 @@ class KnowledgeBase:
 
         self.store.upsert(records)
         return len(records)
+
+
+    def index_domain(self, domain: DomainConfig) -> Dict[str, int]:
+        """Index every document source declared by a domain pack."""
+        domain_root = domain.path.parent
+        indexed: Dict[str, int] = {}
+
+        for source in domain.knowledge_sources:
+            source_id = source.get("id")
+            relative_path = source.get("path")
+
+            if not source_id or not relative_path:
+                continue
+
+            source_path = domain_root / relative_path
+            indexed[source_id] = self.index_directory(
+                str(source_path),
+                source_id=source_id,
+            )
+
+        return indexed
+
+    def index_domain_config(self, domain_config_path: str) -> Dict[str, int]:
+        """Load a domain configuration and index its declared knowledge sources."""
+        return self.index_domain(DomainConfig(domain_config_path))
 
     def retrieve(self, query: str, k: int = 3) -> List[Dict]:
         query_vector = self.client.embed(query)[0]
