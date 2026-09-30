@@ -39,6 +39,12 @@ class TestAnswerClassifier(unittest.TestCase):
                 "en",
                 "off_topic",
             ),
+            (
+                "ما المشكلة الأساسية التي جعلتك تطلب المساعدة اليوم؟",
+                "بجربك أشوفك هتفهم ولا لأ",
+                "ar",
+                "meta",
+            ),
         ]
 
         responses = [
