@@ -35,7 +35,7 @@ PRODUCTS = [
         "sizes": [],
         "colors": ["Black", "white"],
     },
-]
+}
 
 ORDERS = {
     "DEMO-1001": {
