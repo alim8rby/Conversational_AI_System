@@ -13,7 +13,7 @@ from knowledge.context_builder import KnowledgeContextBuilder
 from knowledge.knowledge_base import KnowledgeBase
 from workflows.workflow_manager import WorkflowManager
 from tools.tool_manager import ToolManager
-from tools.demo_ecommerce import order_lookup, product_search
+from tools.demo_ecommerce import extract_order_id, order_lookup, product_search
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
 
@@ -269,18 +269,31 @@ class ConversationAgent:
 
         if required_tools:
             tool_id = required_tools[0]
+
             if tool_id == "product_search":
                 tool_result = self.tools.execute(tool_id, query=user_message)
-            elif tool_id == "order_lookup":
                 run["metrics"]["tool"] = {
                     "tool_id": tool_id,
-                    "status": "requires_order_id",
+                    "status": "executed",
+                    "result_found": tool_result.get("found"),
                 }
-            run["metrics"]["tool"] = {
-                "tool_id": tool_id,
-                "status": "executed" if tool_result is not None else "requires_input",
-                "result_found": tool_result.get("found") if tool_result else None,
-            }
+
+            elif tool_id == "order_lookup":
+                order_id = extract_order_id(user_message)
+                if order_id is None:
+                    run["metrics"]["tool"] = {
+                        "tool_id": tool_id,
+                        "status": "requires_input",
+                        "missing_input": "order_id",
+                    }
+                else:
+                    tool_result = self.tools.execute(tool_id, order_id=order_id)
+                    run["metrics"]["tool"] = {
+                        "tool_id": tool_id,
+                        "status": "executed",
+                        "input": {"order_id": order_id},
+                        "result_found": tool_result.get("found"),
+                    }
 
         run["metrics"]["workflow"] = workflow_plan
         self.last_run = run
