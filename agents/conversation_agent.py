@@ -459,6 +459,19 @@ class ConversationAgent:
             **getattr(self, "last_turn_metrics", {}),
             **run["metrics"]["generation"],
         }
+
+        output_policy = self.policy_engine.evaluate_output(answer)
+        run["metrics"]["output_policy"] = output_policy.as_dict()
+        if output_policy.decision == "blocked":
+            record_error(
+                run,
+                "generation",
+                f"Output policy blocked generated response: {output_policy.policy}",
+            )
+            finish_run(run)
+            self.last_turn_metrics = run["metrics"]["output_policy"]
+            return "Sorry, I cannot provide that response."
+
         finish_run(run)
 
         self.histories[session_id].extend([
