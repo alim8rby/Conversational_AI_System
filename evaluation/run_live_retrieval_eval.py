@@ -1,7 +1,7 @@
-"""Provider-backed retrieval evaluation.
+"""Local retrieval evaluation.
 
-Runs the retrieval evaluator against the existing MemoryManager.
-Requires Together AI and Pinecone credentials plus a populated session.
+Runs the retrieval evaluator against the local MemoryManager.
+Requires Ollama to be running with the configured embedding model.
 """
 
 from __future__ import annotations
@@ -42,8 +42,8 @@ def main() -> None:
     parser.add_argument("--k", type=int, default=3)
     args = parser.parse_args()
 
-    if not os.getenv("TOGETHER_API_KEY") or not os.getenv("PINECONE_API_KEY"):
-        raise RuntimeError("TOGETHER_API_KEY and PINECONE_API_KEY are required for live retrieval evaluation.")
+    if not os.getenv("OLLAMA_BASE_URL"):
+        raise RuntimeError("OLLAMA_BASE_URL is required for live retrieval evaluation.")
 
     manager = MemoryManager(embed_model=EMBED_MODEL, index_name=INDEX_NAME)
     result = evaluate_retriever(
@@ -57,7 +57,7 @@ def main() -> None:
         "evaluation_type": "provider-backed",
         "session_id": args.session_id,
         "embedding_model": EMBED_MODEL,
-        "index_name": INDEX_NAME,
+        "memory_store": INDEX_NAME,
         "k": args.k,
         "result": result,
     }, indent=2))
