@@ -57,7 +57,7 @@ Build → Instrument → Evaluate → Observe Failure
 
 | Layer | Technology |
 |---|---|
-| Application | Python 3.11, Flask |
+| Application | Python 3.14.7, Flask |
 | LLM | Ollama |
 | Embeddings | Ollama |
 | Semantic memory | Local JSON vector store |
@@ -70,7 +70,7 @@ No paid AI API or hosted vector database is required.
 
 ## Requirements
 
-- Python 3.11
+- Python 3.14.7
 - Ollama
 - Ollama models:
   - `llama3.2:3b`
@@ -87,13 +87,25 @@ Make sure Ollama is running.
 
 ## Run locally
 
-Create and activate the virtual environment.
+Create and activate the Python 3.14.7 virtual environment. The repository includes a `.python-version` file so version-aware Python tooling can select the intended interpreter.
 
 Git Bash:
 
 ```bash
 python -m venv .venv
 source .venv/Scripts/activate
+```
+
+Verify:
+
+```bash
+python --version
+```
+
+Expected:
+
+```
+Python 3.14.7
 ```
 
 Install dependencies:
@@ -261,7 +273,9 @@ A public deployment would additionally require authentication, authorization, TL
 
 ## Verification boundary
 
-The repository has been structurally refactored for the local-first stack, but the complete application has **not yet been runtime-verified in this environment**.
+The repository is standardized on Python 3.14.7 across local development, CI, and Docker.
+
+The project has been structurally refactored for the local-first stack, but the complete application has **not yet been runtime-verified locally**.
 
 Do not interpret repository structure as proof of live model, retrieval, voice, Docker, or CI execution.
 
