@@ -10,10 +10,10 @@ from providers.ollama_client import OllamaClient
 class MemoryManager:
     """Session-scoped semantic memory backed by a local JSON vector store."""
 
-    def __init__(self, embed_model: str, index_name: str):
+    def __init__(self, embed_model: str, store_path: str):
         self.embed_model = embed_model
         self.store_path = Path(
-            os.getenv("MEMORY_STORE_PATH", "data/memory.json")
+            store_path
         )
         self.ollama = OllamaClient(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
