@@ -34,7 +34,8 @@
       "id": "product_question",
       "description": "Answer questions about products, features, pricing, or catalog information.",
       "requires": [
-        "knowledge"
+        "knowledge",
+        "product_search"
       ]
     },
     {
@@ -48,8 +49,7 @@
       "id": "return_request",
       "description": "Explain return eligibility and guide the customer through a return request.",
       "requires": [
-        "knowledge",
-        "return_workflow"
+        "knowledge"
       ]
     },
     {
@@ -75,5 +75,8 @@
     "Never invent order status.",
     "Use retrieved business knowledge when answering policy questions.",
     "Escalate requests that cannot be resolved with available knowledge or tools."
-  ]
+  ],
+  "intake": {
+    "enabled": false
+  }
 }
