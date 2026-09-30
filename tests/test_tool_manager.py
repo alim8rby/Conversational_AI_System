@@ -155,6 +155,39 @@ class TestToolManager(unittest.TestCase):
         self.assertEqual(results[0]["status"], "failed")
         self.assertEqual(results[1]["status"], "executed")
 
+    def test_timeout_policy_marks_slow_tool_as_failed(self):
+        self.manager.register(
+            "slow",
+            lambda value: (__import__("time").sleep(0.02) or {"value": value}),
+            required_inputs=("value",),
+            input_extractor=lambda text: {"value": text},
+        )
+
+        result = self.manager.prepare_and_execute(
+            "slow",
+            "hello",
+            timeout_seconds=0.001,
+        )
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["error"]["type"], "tool_timeout")
+        self.assertIn("latency_ms", result)
+
+    def test_invalid_timeout_is_structured_failure(self):
+        result = self.manager.prepare_and_execute(
+            "echo",
+            "hello",
+            timeout_seconds=0,
+        )
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["error"]["type"], "invalid_timeout")
+
+    def test_default_timeout_is_configurable(self):
+        manager = ToolManager(default_timeout_seconds=2.5)
+
+        self.assertEqual(manager.default_timeout_seconds, 2.5)
+
     def test_product_search(self):
         result = product_search("TrailRunner")
 
