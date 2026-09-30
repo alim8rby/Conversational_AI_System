@@ -360,7 +360,7 @@ Deployment-level requirements that remain outside the demo repository include:
 |---|---|
 | `GET /` | Browser application |
 | `GET /health` | Process health |
-| `GET /ready` | Provider readiness |
+| `GET /ready` | Local AI readiness |
 | `POST /chat` | Conversation |
 | `GET /session/<id>/state` | Session state |
 | `GET /session/<id>/memory` | Memory inspection |
@@ -430,7 +430,7 @@ docker run --env-file .env -p 8000:8000 conversational-ai-system
 ## Tests
 
 ```bash
-python -m unittest discover -s tests -vcover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
 CI additionally runs:
@@ -463,7 +463,7 @@ The system was developed in twelve controlled phases:
 | 11 | Deployment / CI/CD / Security |
 | 12 | Portfolio Packaging & Demo |
 
-All twelve phases are now structurally complete.
+All twelve phases are structurally complete; full local runtime verification is the next step.
 
 ---
 
@@ -476,7 +476,7 @@ The application is designed to run locally without paid AI provider credentials.
 Therefore this project does **not** fabricate:
 
 - fresh benchmark scores
-- external-provider retrieval scores
+- Ollama-dependent retrieval scores
 - generation-quality scores
 - live latency measurements
 - successful CI execution claims
