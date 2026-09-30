@@ -1,107 +1,45 @@
 # Portfolio Demo Script
 
-## Objective
+## 1. Start Ollama
 
-Demonstrate the system as an engineered conversational AI platform rather than only a chat interface.
+Verify the local model service is running and the configured chat and embedding models are installed.
 
-## Demo sequence
+## 2. Start the application
 
-### 1. Start with the architecture
+```bash
+python app.py
+```
 
-Show the README architecture:
+Open `http://localhost:8000`.
 
-`Browser → API → Orchestrator → State/Memory/Retrieval → LLM → Voice → Observability/Evaluation`
+## 3. Demonstrate conversation
 
-Explain that the project is built around measurable system behavior.
+Complete several structured intake responses and show the session-progress indicator.
 
-### 2. Start a conversation
+## 4. Demonstrate inspection
 
-Use the browser and complete several structured intake responses.
+Use:
 
-Point out the session progress indicator.
+- `/session/<id>/state`
+- `/session/<id>/memory?q=<query>`
 
-### 3. Show Session State
+Explain that state and retrieval are inspectable rather than hidden.
 
-Open:
+## 5. Demonstrate evaluation
 
-`/session/<session_id>/state`
+Open `/evaluation` and distinguish measured evidence from blocked or unavailable measurements.
 
-Show:
-
-- current section
-- current field
-- completion rate
-- field completion flags
-
-Explain that the projection exposes state without exposing answer values.
-
-### 4. Show Memory
+## 6. Demonstrate failures and operations
 
 Open:
 
-`/session/<session_id>/memory?q=<query>`
+- `/failures`
+- `/operations`
 
-Show:
-
-- retrieved memory IDs
-- ranking
-- similarity scores
-- contextual text
-
-Explain that retrieval is inspectable rather than hidden inside the prompt.
-
-### 5. Show Evaluation
-
-Open:
-
-`/evaluation`
-
-Explain the distinction between:
-
-- measured
-- blocked
-- not measured
-
-Do not present blocked metrics as zeros.
-
-### 6. Show failures
-
-Open:
-
-`/failures`
-
-Show the failure taxonomy and evidence fields.
-
-Explain:
+Explain the loop:
 
 `failure → hypothesis → experiment → validation`
 
-### 7. Show operations
+## 7. Close with the engineering story
 
-Open:
-
-`/operations`
-
-Show:
-
-- run volume
-- success rate
-- latency
-- stage errors
-- evaluation status
-
-### 8. Show engineering hardening
-
-Briefly show:
-
-- Dockerfile
-- GitHub Actions CI
-- security baseline
-- readiness endpoint
-- non-root container
-
-### 9. Close with the engineering story
-
-The key message:
-
-> The project demonstrates the full loop from conversational behavior to measurement, failure analysis, controlled improvement, and operational readiness.
+The project is not only a chatbot. It is a local-first conversational AI system with state, memory, evaluation, observability, failure analysis, and operational surfaces.
