@@ -48,7 +48,7 @@ ORDERS = {
         "carrier": None,
         "estimated_delivery": None,
     },
-]
+}
 
 
 def extract_order_id(text: str) -> str | None:
