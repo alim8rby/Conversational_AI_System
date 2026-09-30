@@ -91,15 +91,26 @@ class ConversationAgent:
             },
             description="Retrieve the current status of a customer's order.",
         )
+        # Structured intake is optional; the active domain decides whether it is enabled.
+        self.intake_enabled = self.domain.intake_enabled
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
         self.histories: Dict[str, List[dict]] = {}
         self.clarify_counts: Dict[Tuple[str, str, str], int] = {}
 
     def start_session(self, session_id: str, lang: str = "en") -> str:
-        """Initialize an intake session and return its first question."""
-        self.interviewer.init_session(session_id)
+        """Initialize a session according to the active domain configuration."""
         self.histories.setdefault(session_id, [])
+
+        if not self.intake_enabled:
+            self.awaiting.pop(session_id, None)
+            assistant_name = self.domain.assistant["name"]
+            purpose = self.domain.assistant["purpose"]
+            if lang == "ar":
+                return f"أهلاً، أنا {assistant_name}. {purpose}"
+            return f"Hi, I'm {assistant_name}. {purpose}"
+
+        self.interviewer.init_session(session_id)
         section, field = self.interviewer.next_field(session_id)
         if not section:
             self.awaiting.pop(session_id, None)
@@ -192,10 +203,12 @@ class ConversationAgent:
                 "ممكن تحكي لي أكثر؟" if lang == "ar" else "Could you tell me a little more?"
             )
 
-        self.interviewer.init_session(session_id)
         self.histories.setdefault(session_id, [])
 
-        if not self.interviewer.is_complete(session_id):
+        if self.intake_enabled:
+            self.interviewer.init_session(session_id)
+
+        if self.intake_enabled and not self.interviewer.is_complete(session_id):
             current = self.awaiting.get(session_id)
             if current:
                 section, field = current
@@ -253,7 +266,7 @@ class ConversationAgent:
             finish_run(run)
             return prompt or ""
 
-        sheet = self.interviewer.get_flat_sheet(session_id)
+        sheet = self.interviewer.get_flat_sheet(session_id) if self.intake_enabled else ""
 
         workflow_started = time.perf_counter()
         try:
@@ -336,9 +349,13 @@ class ConversationAgent:
         )
         messages = [
             {"role": "system", "content": system},
-            {"role": "system", "content": "Session information:\n" + sheet},
             {"role": "system", "content": "Workflow plan:\n" + str(workflow_plan)},
         ]
+        if sheet:
+            messages.insert(
+                1,
+                {"role": "system", "content": "Session information:\n" + sheet},
+            )
         messages.extend(self.histories[session_id])
         if memory_context:
             messages.append({"role": "system", "content": "Relevant conversation memory:\n" + memory_context})
