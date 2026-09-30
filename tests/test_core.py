@@ -4,6 +4,7 @@ import unittest
 from agents.conversation_agent import detect_language, is_valid_answer
 from interview_manager import InterviewManager
 from memory.memory_manager import MemoryManager
+from product.session_state import build_session_state
 
 
 class TestConversationCore(unittest.TestCase):
@@ -24,6 +25,19 @@ class TestConversationCore(unittest.TestCase):
         from memory.memory_manager import MemoryManager
         self.assertIn("MemoryManager", inspect.getsource(MemoryManager))
         self.assertIn("retrieve", inspect.getsource(MemoryManager))
+
+    def test_domain_session_state_without_intake(self):
+        manager = InterviewManager()
+        state = build_session_state(
+            manager,
+            "demo-session",
+            intake_enabled=False,
+            assistant_name="ShopAssist",
+        )
+        self.assertEqual(state["status"], "ready")
+        self.assertEqual(state["assistant"], "ShopAssist")
+        self.assertEqual(state["progress"]["total_fields"], 0)
+        self.assertEqual(state["sections"], [])
 
     def test_interview_progression(self):
         manager = InterviewManager()
