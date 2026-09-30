@@ -42,6 +42,10 @@ class DomainConfig:
         if not assistant.get("name") or not assistant.get("purpose"):
             raise ValueError("Domain assistant must define both 'name' and 'purpose'.")
 
+        intake = self.data.get("intake", {"enabled": False})
+        if not isinstance(intake, dict) or not isinstance(intake.get("enabled", False), bool):
+            raise ValueError("Domain configuration field 'intake.enabled' must be a boolean.")
+
     @property
     def domain_id(self) -> str:
         return self.data["domain_id"]
@@ -53,6 +57,10 @@ class DomainConfig:
     @property
     def assistant(self) -> Dict[str, Any]:
         return self.data["assistant"]
+
+    @property
+    def intake_enabled(self) -> bool:
+        return self.data.get("intake", {}).get("enabled", False)
 
     @property
     def knowledge_sources(self) -> list[Dict[str, Any]]:
