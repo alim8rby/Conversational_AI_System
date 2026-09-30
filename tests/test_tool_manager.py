@@ -51,6 +51,48 @@ class TestToolManager(unittest.TestCase):
             ["value"],
         )
 
+    def test_prepare_and_execute_requires_input(self):
+        self.manager.register(
+            "lookup",
+            lambda order_id: {"order_id": order_id},
+            required_inputs=("order_id",),
+            input_extractor=lambda text: {
+                "order_id": extract_order_id(text)
+            },
+        )
+
+        result = self.manager.prepare_and_execute("lookup", "check my order")
+
+        self.assertEqual(result["status"], "requires_input")
+        self.assertEqual(result["missing_inputs"], ["order_id"])
+
+    def test_execute_required_runs_all_tools_in_order(self):
+        calls = []
+
+        self.manager.register(
+            "first",
+            lambda query: calls.append("first") or {"found": True},
+            required_inputs=("query",),
+            input_extractor=lambda text: {"query": text},
+        )
+        self.manager.register(
+            "second",
+            lambda query: calls.append("second") or {"found": True},
+            required_inputs=("query",),
+            input_extractor=lambda text: {"query": text},
+        )
+
+        results = self.manager.execute_required(
+            ["first", "second"],
+            "hello",
+        )
+
+        self.assertEqual(calls, ["first", "second"])
+        self.assertEqual(
+            [item["status"] for item in results],
+            ["executed", "executed"],
+        )
+
     def test_product_search(self):
         result = product_search("TrailRunner")
 
@@ -58,6 +100,8 @@ class TestToolManager(unittest.TestCase):
         self.assertEqual(result["results"][0]["product_id"], "TRX1")
 
     def test_product_query_extractor(self):
+        from tools.demo_ecommerce import extract_product_query
+
         self.assertEqual(
             extract_product_query("Do you have running shoes?"),
             {"query": "Do you have running shoes?"},
