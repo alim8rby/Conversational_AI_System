@@ -16,6 +16,7 @@ from tools.tool_manager import ToolManager
 from tools.demo_ecommerce import extract_order_id, extract_product_query, order_lookup, product_search
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
+from policies.policy_engine import PolicyEngine
 
 MODEL_NAME = os.getenv("LLM_MODEL", "llama3.2:3b")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
@@ -71,6 +72,7 @@ class ConversationAgent:
         self.classifier = AnswerClassifier(self.client)
         self.model = model_name
         self.domain = DomainConfig(domain_config_path)
+        self.policy_engine = PolicyEngine(self.domain.policies)
         self.mem = MemoryManager(embed_model, store_path)
         self.knowledge = KnowledgeBase(embed_model=embed_model)
         self.context_builder = KnowledgeContextBuilder()
@@ -205,6 +207,18 @@ class ConversationAgent:
             )
 
         self.histories.setdefault(session_id, [])
+
+        policy_decision = self.policy_engine.evaluate(user_message)
+        run["metrics"]["policy"] = policy_decision.as_dict()
+        if policy_decision.decision == "blocked":
+            record_error(
+                run,
+                "dialogue",
+                f"Policy blocked request: {policy_decision.policy}",
+            )
+            finish_run(run)
+            self.last_turn_metrics = run["metrics"]["policy"]
+            return "I can't help with requests that attempt to bypass system safeguards."
 
         if self.intake_enabled:
             self.interviewer.init_session(session_id)
