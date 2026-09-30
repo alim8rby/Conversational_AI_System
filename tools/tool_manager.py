@@ -25,7 +25,10 @@ class ToolDefinition:
 class ToolManager:
     """Expose only tools explicitly registered by the application."""
 
-    def __init__(self):
+    def __init__(self, default_timeout_seconds: float = 5.0):
+        if default_timeout_seconds <= 0:
+            raise ValueError("default_timeout_seconds must be greater than zero.")
+        self.default_timeout_seconds = default_timeout_seconds
         self._tools: Dict[str, ToolDefinition] = {}
 
     def register(
@@ -97,6 +100,8 @@ class ToolManager:
         self,
         tool_id: str,
         user_message: str,
+        *,
+        timeout_seconds: float | None = None,
     ) -> Dict[str, Any]:
         """Execute one tool and convert failures into structured results."""
         started = perf_counter()
@@ -125,6 +130,23 @@ class ToolManager:
                 "latency_ms": round((perf_counter() - started) * 1000, 2),
             }
 
+        timeout = self.default_timeout_seconds if timeout_seconds is None else timeout_seconds
+        if timeout <= 0:
+            return {
+                "tool_id": tool_id,
+                "status": "failed",
+                "inputs": inputs,
+                "error": {
+                    "type": "invalid_timeout",
+                    "message": "timeout_seconds must be greater than zero.",
+                },
+                "latency_ms": round((perf_counter() - started) * 1000, 2),
+            }
+
+        # The local prototype cannot safely interrupt an arbitrary Python
+        # callable without changing the tool execution model. We therefore
+        # enforce the timeout as an explicit policy boundary for cooperative
+        # handlers by measuring elapsed execution time.
         try:
             result = self.execute(tool_id, **inputs)
         except Exception as exc:
@@ -139,6 +161,19 @@ class ToolManager:
                 "latency_ms": round((perf_counter() - started) * 1000, 2),
             }
 
+        latency_ms = round((perf_counter() - started) * 1000, 2)
+        if latency_ms > timeout * 1000:
+            return {
+                "tool_id": tool_id,
+                "status": "failed",
+                "inputs": inputs,
+                "error": {
+                    "type": "tool_timeout",
+                    "message": f"Tool exceeded the {timeout:g}s execution policy.",
+                },
+                "latency_ms": latency_ms,
+            }
+
         return {
             "tool_id": tool_id,
             "status": "executed",
@@ -151,9 +186,17 @@ class ToolManager:
         self,
         tool_ids: list[str],
         user_message: str,
+        *,
+        timeout_seconds: float | None = None,
     ) -> list[Dict[str, Any]]:
         """Execute all registered tools required by a workflow, in order."""
         executions = []
         for tool_id in tool_ids:
-            executions.append(self.prepare_and_execute(tool_id, user_message))
+            executions.append(
+                self.prepare_and_execute(
+                    tool_id,
+                    user_message,
+                    timeout_seconds=timeout_seconds,
+                )
+            )
         return executions
