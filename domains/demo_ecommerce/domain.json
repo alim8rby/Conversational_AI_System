@@ -1,0 +1,59 @@
+{
+  "domain_id": "demo_ecommerce",
+  "name": "Demo E-commerce Assistant",
+  "version": "1.0",
+  "description": "Reference domain pack demonstrating how the conversational engine can be configured for a business without changing the core engine.",
+
+  "assistant": {
+    "name": "ShopAssist",
+    "purpose": "Help customers understand products, policies, and order-related workflows."
+  },
+
+  "knowledge_sources": [
+    {
+      "id": "product_catalog",
+      "type": "documents",
+      "path": "knowledge/products"
+    },
+    {
+      "id": "shipping_policy",
+      "type": "documents",
+      "path": "knowledge/shipping"
+    },
+    {
+      "id": "return_policy",
+      "type": "documents",
+      "path": "knowledge/returns"
+    },
+    {
+      "id": "faq",
+      "type": "documents",
+      "path": "knowledge/faq"
+    }
+  ],
+
+  "workflows": [
+    "product_question",
+    "order_tracking",
+    "return_request",
+    "general_support"
+  ],
+
+  "tools": [
+    {
+      "id": "product_search",
+      "description": "Search the product catalog."
+    },
+    {
+      "id": "order_lookup",
+      "description": "Retrieve the current status of a customer's order."
+    }
+  ],
+
+  "policies": [
+    "Never invent product availability.",
+    "Never invent order status.",
+    "Use retrieved business knowledge when answering policy questions.",
+    "Escalate requests that cannot be resolved with available knowledge or tools."
+  ]
+}
