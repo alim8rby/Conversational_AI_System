@@ -20,7 +20,7 @@ class SettingsTests(unittest.TestCase):
     def test_invalid_port_is_rejected(self):
         with patch.dict(os.environ, {"PORT": "not-a-number"}, clear=True):
             with self.assertRaises(RuntimeError):
-                load_settings(require_providers=False)
+                load_settings(require_runtime=False)
 
 
 if __name__ == "__main__":
