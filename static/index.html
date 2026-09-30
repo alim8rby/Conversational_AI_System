@@ -38,6 +38,16 @@ async function refreshOperations(){try{const r=await fetch('/operations');const 
 refreshOperations();
 async function refreshState(){try{const r=await fetch('/session/'+encodeURIComponent(session)+'/state');const s=await r.json();state.textContent='Session: '+s.status+' · '+Math.round(s.progress.completion_rate*100)+'% complete';}catch(e){state.textContent='Session state unavailable';}}
 refreshState();
+async function startSession(){
+  try{
+    const r=await fetch('/session/'+encodeURIComponent(session)+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:'en'})});
+    const data=await r.json();
+    if(!r.ok)throw new Error(data.error||'Session start failed');
+    add(data.reply,'bot');
+    refreshState();
+  }catch(err){add('Unable to start the session. Please try again.','bot');console.error(err);}
+}
+startSession();
 function add(text,role){const el=document.createElement('div');el.className='msg '+role;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;}
 document.querySelector('#form').addEventListener('submit',async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;input.value='';add(message,'user');try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,message})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');add(data.reply,'bot');refreshState();if(data.audio){new Audio(data.audio+'?t='+Date.now()).play().catch(()=>{});}}catch(err){add('Request failed. Please try again.','bot');console.error(err);}});
 </script>
