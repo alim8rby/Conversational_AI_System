@@ -50,7 +50,12 @@ def index():
 def session_state(session_id):
     if not session_id.strip() or len(session_id) > 128:
         return jsonify({"error": "Invalid session ID."}), 400
-    return jsonify(build_session_state(agent.interviewer, session_id))
+    return jsonify(build_session_state(
+        agent.interviewer,
+        session_id,
+        intake_enabled=agent.intake_enabled,
+        assistant_name=agent.domain.assistant["name"],
+    ))
 
 @app.post("/session/<session_id>/start")
 def start_session(session_id):
