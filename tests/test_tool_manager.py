@@ -1,23 +1,55 @@
 import unittest
 
-from tools.demo_ecommerce import extract_order_id, order_lookup, product_search
+from tools.demo_ecommerce import (
+    extract_order_id,
+    extract_product_query,
+    order_lookup,
+    product_search,
+)
 from tools.tool_manager import ToolManager
 
 
 class TestToolManager(unittest.TestCase):
+    def setUp(self):
+        self.manager = ToolManager()
+        self.manager.register(
+            "echo",
+            lambda value: {"value": value},
+            required_inputs=("value",),
+        )
+
     def test_register_and_execute(self):
-        manager = ToolManager()
-
-        manager.register("echo", lambda value: {"value": value})
-
-        self.assertEqual(manager.tool_ids, ["echo"])
-        self.assertEqual(manager.execute("echo", value="hello"), {"value": "hello"})
+        self.assertEqual(self.manager.tool_ids, ["echo"])
+        self.assertEqual(self.manager.execute("echo", value="hello"), {"value": "hello"})
 
     def test_unknown_tool_fails(self):
-        manager = ToolManager()
-
         with self.assertRaises(ValueError):
-            manager.execute("missing")
+            self.manager.execute("missing")
+
+    def test_missing_required_input_fails(self):
+        with self.assertRaises(ValueError):
+            self.manager.execute("echo")
+
+    def test_prepare_inputs(self):
+        self.manager.register(
+            "lookup",
+            lambda order_id: {"order_id": order_id},
+            required_inputs=("order_id",),
+            input_extractor=lambda text: {
+                "order_id": extract_order_id(text)
+            },
+        )
+
+        self.assertEqual(
+            self.manager.prepare_inputs("lookup", "check demo-1001"),
+            {"order_id": "DEMO-1001"},
+        )
+
+    def test_missing_inputs(self):
+        self.assertEqual(
+            self.manager.missing_inputs("echo", {}),
+            ["value"],
+        )
 
     def test_product_search(self):
         result = product_search("TrailRunner")
@@ -25,12 +57,11 @@ class TestToolManager(unittest.TestCase):
         self.assertTrue(result["found"])
         self.assertEqual(result["results"][0]["product_id"], "TRX1")
 
-    def test_extract_order_id(self):
+    def test_product_query_extractor(self):
         self.assertEqual(
-            extract_order_id("Can you check order demo-1001?"),
-            "DEMO-1001",
+            extract_product_query("Do you have running shoes?"),
+            {"query": "Do you have running shoes?"},
         )
-        self.assertIsNone(extract_order_id("Can you check my order?"))
 
     def test_order_lookup(self):
         result = order_lookup("demo-1001")
