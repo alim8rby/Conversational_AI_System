@@ -3,12 +3,10 @@
   "name": "Demo E-commerce Assistant",
   "version": "1.0",
   "description": "Reference domain pack demonstrating how the conversational engine can be configured for a business without changing the core engine.",
-
   "assistant": {
     "name": "ShopAssist",
     "purpose": "Help customers understand products, policies, and order-related workflows."
   },
-
   "knowledge_sources": [
     {
       "id": "product_catalog",
@@ -31,14 +29,37 @@
       "path": "knowledge/faq"
     }
   ],
-
   "workflows": [
-    "product_question",
-    "order_tracking",
-    "return_request",
-    "general_support"
+    {
+      "id": "product_question",
+      "description": "Answer questions about products, features, pricing, or catalog information.",
+      "requires": [
+        "knowledge"
+      ]
+    },
+    {
+      "id": "order_tracking",
+      "description": "Help the customer retrieve the current status of an existing order.",
+      "requires": [
+        "order_lookup"
+      ]
+    },
+    {
+      "id": "return_request",
+      "description": "Explain return eligibility and guide the customer through a return request.",
+      "requires": [
+        "knowledge",
+        "return_workflow"
+      ]
+    },
+    {
+      "id": "general_support",
+      "description": "Handle general customer support questions that do not fit another workflow.",
+      "requires": [
+        "knowledge"
+      ]
+    }
   ],
-
   "tools": [
     {
       "id": "product_search",
@@ -49,7 +70,6 @@
       "description": "Retrieve the current status of a customer's order."
     }
   ],
-
   "policies": [
     "Never invent product availability.",
     "Never invent order status.",
