@@ -6,7 +6,7 @@
     "application_version",
     "model",
     "embedding_model",
-    "pinecone_index",
+    "memory_store",
     "prompt_version",
     "retrieval_k",
     "temperature",
