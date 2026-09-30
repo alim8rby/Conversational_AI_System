@@ -9,11 +9,11 @@ class SettingsTests(unittest.TestCase):
     def test_ollama_configuration_is_required_for_readiness(self):
         with patch.dict(os.environ, {}, clear=True):
             with self.assertRaises(RuntimeError):
-                load_settings(require_providers=True)
+                load_settings(require_runtime=True)
 
     def test_non_runtime_config_can_load_for_unit_tests(self):
         with patch.dict(os.environ, {"PORT": "9000"}, clear=True):
-            settings = load_settings(require_providers=False)
+            settings = load_settings(require_runtime=False)
             self.assertEqual(settings.port, 9000)
             self.assertEqual(settings.app_version, "unknown")
 
