@@ -59,7 +59,8 @@ class ConversationAgent:
 
     def _semantic_similarity(self, question: str, answer: str) -> float:
         try:
-            qvec, avec = self.client.embed([question, answer])
+            embeddings = self.client.embed([question, answer])
+            qvec, avec = embeddings[0], embeddings[1]
             dot = sum(q * a for q, a in zip(qvec, avec))
             qmag = math.sqrt(sum(q * q for q in qvec))
             amag = math.sqrt(sum(a * a for a in avec))
@@ -77,8 +78,10 @@ class ConversationAgent:
             response = self.client.chat(
                 messages=[
                     {"role": "system", "content": system},
-                    {"role": "user", "content": f"Question: {question}
-Answer: {answer}"},
+                    {
+                        "role": "user",
+                        "content": f"Question: {question}\nAnswer: {answer}",
+                    },
                 ],
                 max_tokens=3,
                 temperature=0.0,
