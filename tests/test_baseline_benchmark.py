@@ -164,12 +164,12 @@ class TestBaselineBenchmark(unittest.TestCase):
         ):
             agent.ask(session, "nothing")
 
-        self.assertIsNone(
-            agent.interviewer.sessions[session]["personal_info"]["main"]
-        )
         self.assertEqual(
-            agent.interviewer.sessions[session]["personal_info"]["additional_details"],
-            None,
+            agent.interviewer.sessions[session]["personal_info"]["main"],
+            "nothing",
+        )
+        self.assertIsNone(
+            agent.interviewer.sessions[session]["personal_info"]["additional_details"]
         )
         self.assertEqual(
             agent.awaiting[session],
