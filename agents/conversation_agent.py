@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 
 from providers.ollama_client import OllamaClient
 
+from agents.answer_classifier import AnswerClassifier
 from interview_manager import InterviewManager
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
@@ -19,8 +20,8 @@ RETRIEVAL_K = 3
 GENERATION_TEMPERATURE = 0.7
 GENERATION_MAX_TOKENS = 250
 
-# Initial empirical gate from EXP002. This is a measured prototype threshold,
-# not a production-calibrated classifier boundary.
+# Retained as an observability reference for the historical EXP002 experiment.
+# It is no longer used as the intake decision boundary.
 ANSWER_RELEVANCE_THRESHOLD = 0.46
 
 
@@ -54,6 +55,7 @@ class ConversationAgent:
             model=model_name,
             embed_model=embed_model,
         )
+        self.classifier = AnswerClassifier(self.client)
         self.model = model_name
         self.mem = MemoryManager(embed_model, store_path)
         self.interviewer = InterviewManager()
@@ -89,22 +91,15 @@ class ConversationAgent:
         answer: str,
         lang: str,
         similarity: float | None = None,
-    ) -> bool:
-        """Validate intake relevance using the measured embedding signal.
+    ) -> Dict[str, str]:
+        """Classify the conversational role of an intake response.
 
-        The local 3B LLM was tested as a binary relevance classifier in EXP002
-        and incorrectly rejected clearly relevant answers. The embedding model
-        showed measurable separation, so it is the current deterministic gate.
-        lang is retained for call compatibility and future language-specific
-        validation.
+        The LLM classifier is the decision-maker. Semantic similarity is retained
+        only as an observability signal so we can measure how well it correlates
+        with the richer conversational classification.
         """
-        del lang
-        score = (
-            self._semantic_similarity(question, answer)
-            if similarity is None
-            else similarity
-        )
-        return score >= ANSWER_RELEVANCE_THRESHOLD
+        del similarity
+        return self.classifier.classify(question, answer, lang)
 
     def _clarify(self, session: str, section: str, field: str, lang: str) -> str:
         key = (session, section, field)
@@ -123,6 +118,18 @@ class ConversationAgent:
                 "How does what you just mentioned connect with what you shared earlier?",
             ]
         return prompts[min(count, len(prompts) - 1)]
+
+    def _handle_meta(self, section: str, field: str, lang: str) -> str:
+        """Acknowledge meta/test input without consuming the current intake field."""
+        if lang == "ar":
+            acknowledgement = "تمام، فهمت إنك بتختبر النظام. "
+        else:
+            acknowledgement = "Understood. I see that you are testing the system. "
+        if field == "main":
+            question = self.interviewer.get_section_prompt(section, lang)
+        else:
+            question = self.interviewer.get_section_prompt(section, lang)
+        return acknowledgement + (question or "")
 
     def ask(self, session_id: str, user_message: str) -> str:
         lang = detect_language(user_message)
@@ -165,8 +172,9 @@ class ConversationAgent:
                 similarity_started = time.perf_counter()
                 similarity = self._semantic_similarity(question or "", user_message)
                 similarity_latency_ms = round((time.perf_counter() - similarity_started) * 1000, 2)
+
                 classification_started = time.perf_counter()
-                relevant = self._classify_answer(
+                classification = self._classify_answer(
                     question or "",
                     user_message,
                     lang,
@@ -176,20 +184,27 @@ class ConversationAgent:
                     (time.perf_counter() - classification_started) * 1000,
                     2,
                 )
+                label = classification["label"]
                 run["metrics"]["classification"] = {
                     "semantic_similarity": similarity,
                     "semantic_similarity_threshold": ANSWER_RELEVANCE_THRESHOLD,
                     "semantic_similarity_latency_ms": similarity_latency_ms,
-                    "classification_relevant": relevant,
-                    "classification_method": "embedding_threshold",
+                    "classification_label": label,
+                    "classification_reason": classification["reason"],
+                    "classification_method": "llm_structured",
                     "classification_latency_ms": classification_latency_ms,
                 }
                 self.last_turn_metrics = run["metrics"]["classification"]
-                if similarity < 0.30 or not relevant:
+
+                if label in {"answer", "negative", "refusal"}:
+                    self.interviewer.record_response(session_id, section, field, user_message)
+                    self.clarify_counts.pop((session_id, section, field), None)
+                elif label == "meta":
+                    finish_run(run)
+                    return self._handle_meta(section, field, lang)
+                else:
                     finish_run(run)
                     return self._clarify(session_id, section, field, lang)
-                self.interviewer.record_response(session_id, section, field, user_message)
-                self.clarify_counts.pop((session_id, section, field), None)
 
             section, field = self.interviewer.next_field(session_id)
             if section:
