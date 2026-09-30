@@ -26,11 +26,10 @@ def _positive_int(name: str, default: str) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    together_api_key: str
-    pinecone_api_key: str
+    ollama_base_url: str
     llm_model: str
     embed_model: str
-    pinecone_index: str
+    memory_store_path: str
     port: int
     app_version: str
     prompt_version: str
@@ -40,11 +39,10 @@ class Settings:
 
 def load_settings(require_providers: bool = True) -> Settings:
     return Settings(
-        together_api_key=_required("TOGETHER_API_KEY") if require_providers else os.getenv("TOGETHER_API_KEY", ""),
-        pinecone_api_key=_required("PINECONE_API_KEY") if require_providers else os.getenv("PINECONE_API_KEY", ""),
-        llm_model=os.getenv("LLM_MODEL", "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"),
-        embed_model=os.getenv("EMBED_MODEL", "togethercomputer/m2-bert-80M-8k-retrieval"),
-        pinecone_index=os.getenv("PINECONE_INDEX", "conversation-memory"),
+        ollama_base_url=_required("OLLAMA_BASE_URL") if require_providers else os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        llm_model=os.getenv("LLM_MODEL", "llama3.2:3b"),
+        embed_model=os.getenv("EMBED_MODEL", "nomic-embed-text"),
+        memory_store_path=os.getenv("MEMORY_STORE_PATH", "data/memory.json"),
         port=_positive_int("PORT", "8000"),
         app_version=os.getenv("APP_VERSION", "unknown"),
         prompt_version=os.getenv("PROMPT_VERSION", "v1"),
