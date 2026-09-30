@@ -120,16 +120,6 @@ class ToolManager:
                 "latency_ms": round((perf_counter() - started) * 1000, 2),
             }
 
-        missing = self.missing_inputs(tool_id, inputs)
-        if missing:
-            return {
-                "tool_id": tool_id,
-                "status": "requires_input",
-                "missing_inputs": missing,
-                "inputs": inputs,
-                "latency_ms": round((perf_counter() - started) * 1000, 2),
-            }
-
         timeout = self.default_timeout_seconds if timeout_seconds is None else timeout_seconds
         if timeout <= 0:
             return {
@@ -140,6 +130,16 @@ class ToolManager:
                     "type": "invalid_timeout",
                     "message": "timeout_seconds must be greater than zero.",
                 },
+                "latency_ms": round((perf_counter() - started) * 1000, 2),
+            }
+
+        missing = self.missing_inputs(tool_id, inputs)
+        if missing:
+            return {
+                "tool_id": tool_id,
+                "status": "requires_input",
+                "missing_inputs": missing,
+                "inputs": inputs,
                 "latency_ms": round((perf_counter() - started) * 1000, 2),
             }
 
