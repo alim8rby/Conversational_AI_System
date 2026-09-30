@@ -29,7 +29,7 @@ Do not invent a workflow that is not configured.
     def __init__(self, domain: DomainConfig, client: OllamaClient):
         self.domain = domain
         self.client = client
-        self._definitions = self._normalize_workflows(domain.workflows)
+        self._definitions = self._normalize_workflows(domain.workflow_definitions)
 
     @staticmethod
     def _normalize_workflows(workflows: List) -> Dict[str, Dict]:
