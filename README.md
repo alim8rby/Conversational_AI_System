@@ -512,4 +512,4 @@ This is a technical conversational-AI demonstration. It is not a medical diagnos
 
 ## License
 
-No open-source license is currently specified.
+MIT license is currently specified.
