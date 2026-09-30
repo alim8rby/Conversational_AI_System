@@ -72,7 +72,10 @@ class ConversationAgent:
         self.classifier = AnswerClassifier(self.client)
         self.model = model_name
         self.domain = DomainConfig(domain_config_path)
-        self.policy_engine = PolicyEngine(self.domain.policies)
+        self.policy_engine = PolicyEngine(
+            self.domain.policies,
+            allowed_tools=[tool["id"] for tool in self.domain.tools],
+        )
         self.mem = MemoryManager(embed_model, store_path)
         self.knowledge = KnowledgeBase(embed_model=embed_model)
         self.context_builder = KnowledgeContextBuilder()
@@ -295,13 +298,36 @@ class ConversationAgent:
         ]
 
         if required_tools:
+            authorized_tools = []
+            denied_tools = []
+
+            for tool_id in required_tools:
+                decision = self.policy_engine.authorize_tool(tool_id)
+                if decision.decision == "allowed":
+                    authorized_tools.append(tool_id)
+                else:
+                    denied_tools.append(
+                        {
+                            "tool_id": tool_id,
+                            "decision": decision.as_dict(),
+                        }
+                    )
+
+            if denied_tools:
+                run["metrics"]["tool_authorization"] = {
+                    "authorized_tools": authorized_tools,
+                    "denied_tools": denied_tools,
+                }
+
             tool_executions = self.tools.execute_required(
-                required_tools,
+                authorized_tools,
                 user_message,
                 timeout_seconds=TOOL_TIMEOUT_SECONDS,
             )
             run["metrics"]["tool"] = {
                 "required_tools": required_tools,
+                "authorized_tools": authorized_tools,
+                "denied_tools": [item["tool_id"] for item in denied_tools],
                 "executions": tool_executions,
                 "failed_count": sum(
                     execution["status"] == "failed"
