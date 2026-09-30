@@ -39,6 +39,14 @@ Question: "What brings you here today?"
 User: "I'd rather not say."
 JSON: {"label":"refusal","reason":"The user declines to provide the information."}
 
+Question: "ما المشكلة الأساسية التي جعلتك تطلب المساعدة اليوم؟"
+User: "بجربك أشوفك هتفهم ولا لأ"
+JSON: {"label":"meta","reason":"The user is describing that they are testing the assistant rather than answering the intake question."}
+
+Question: "Tell me about yourself."
+User: "بجربك بس"
+JSON: {"label":"meta","reason":"The user is talking about testing the assistant rather than providing personal information."}
+
 Question: "Tell me about yourself."
 User: "I work in finance and live with my family."
 JSON: {"label":"answer","reason":"The user provides information relevant to the requested introduction."}
