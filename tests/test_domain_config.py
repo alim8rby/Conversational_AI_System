@@ -10,6 +10,7 @@ class TestDomainConfig(unittest.TestCase):
         self.assertEqual(domain.domain_id, "demo_ecommerce")
         self.assertEqual(domain.name, "Demo E-commerce Assistant")
         self.assertEqual(domain.assistant["name"], "ShopAssist")
+        self.assertFalse(domain.intake_enabled)
         self.assertTrue(domain.knowledge_sources)
         self.assertIn("order_tracking", domain.workflows)
         self.assertIn("order_lookup", [tool["id"] for tool in domain.tools])
