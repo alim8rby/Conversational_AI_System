@@ -54,7 +54,7 @@ def main() -> None:
         args.k,
     )
     print(json.dumps({
-        "evaluation_type": "provider-backed",
+        "evaluation_type": "local-runtime",
         "session_id": args.session_id,
         "embedding_model": EMBED_MODEL,
         "memory_store": INDEX_NAME,
