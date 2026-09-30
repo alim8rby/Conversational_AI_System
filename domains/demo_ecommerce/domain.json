@@ -63,11 +63,21 @@
   "tools": [
     {
       "id": "product_search",
-      "description": "Search the product catalog."
+      "description": "Search the product catalog.",
+      "handler": "tools.demo_ecommerce:product_search",
+      "input_extractor": "tools.demo_ecommerce:extract_product_query",
+      "required_inputs": [
+        "query"
+      ]
     },
     {
       "id": "order_lookup",
-      "description": "Retrieve the current status of a customer's order."
+      "description": "Retrieve the current status of a customer's order.",
+      "handler": "tools.demo_ecommerce:order_lookup",
+      "input_extractor": "tools.demo_ecommerce:extract_order_id",
+      "required_inputs": [
+        "order_id"
+      ]
     }
   ],
   "policies": [
