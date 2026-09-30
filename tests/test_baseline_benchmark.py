@@ -106,6 +106,38 @@ class TestBaselineBenchmark(unittest.TestCase):
 
         self.assertIsNone(agent.interviewer.sessions[session]["personal_info"]["main"])
 
+    def test_additional_details_validate_against_parent_section(self):
+        agent = ConversationAgent(store_path="data/test_additional_details.json")
+        session = "B011"
+        agent.start_session(session)
+
+        with unittest.mock.patch.object(
+            agent,
+            "_semantic_similarity",
+            side_effect=[0.70, 0.50],
+        ) as similarity:
+            agent.ask(
+                session,
+                "I am 30 years old, work as a software developer, and live in Cairo.",
+            )
+            agent.ask(
+                session,
+                "I live with my family and have been working in this field for five years.",
+            )
+
+        self.assertEqual(
+            agent.interviewer.sessions[session]["personal_info"]["additional_details"],
+            "I live with my family and have been working in this field for five years.",
+        )
+        self.assertEqual(
+            similarity.call_args_list[1].args[0],
+            agent.interviewer.get_section_prompt("personal_info"),
+        )
+        self.assertEqual(
+            agent.awaiting[session],
+            ("chief_complaint", "main"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
