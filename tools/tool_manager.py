@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any, Callable, Dict
 
 
@@ -97,8 +98,23 @@ class ToolManager:
         tool_id: str,
         user_message: str,
     ) -> Dict[str, Any]:
-        """Prepare inputs and execute a single tool."""
-        inputs = self.prepare_inputs(tool_id, user_message)
+        """Execute one tool and convert failures into structured results."""
+        started = perf_counter()
+
+        try:
+            inputs = self.prepare_inputs(tool_id, user_message)
+        except Exception as exc:
+            return {
+                "tool_id": tool_id,
+                "status": "failed",
+                "inputs": {},
+                "error": {
+                    "type": "input_extraction_error",
+                    "message": str(exc),
+                },
+                "latency_ms": round((perf_counter() - started) * 1000, 2),
+            }
+
         missing = self.missing_inputs(tool_id, inputs)
         if missing:
             return {
@@ -106,14 +122,29 @@ class ToolManager:
                 "status": "requires_input",
                 "missing_inputs": missing,
                 "inputs": inputs,
+                "latency_ms": round((perf_counter() - started) * 1000, 2),
             }
 
-        result = self.execute(tool_id, **inputs)
+        try:
+            result = self.execute(tool_id, **inputs)
+        except Exception as exc:
+            return {
+                "tool_id": tool_id,
+                "status": "failed",
+                "inputs": inputs,
+                "error": {
+                    "type": "tool_execution_error",
+                    "message": str(exc),
+                },
+                "latency_ms": round((perf_counter() - started) * 1000, 2),
+            }
+
         return {
             "tool_id": tool_id,
             "status": "executed",
             "inputs": inputs,
             "result": result,
+            "latency_ms": round((perf_counter() - started) * 1000, 2),
         }
 
     def execute_required(
