@@ -1,6 +1,6 @@
 import unittest
 
-from tools.demo_ecommerce import order_lookup, product_search
+from tools.demo_ecommerce import extract_order_id, order_lookup, product_search
 from tools.tool_manager import ToolManager
 
 
@@ -24,6 +24,13 @@ class TestToolManager(unittest.TestCase):
 
         self.assertTrue(result["found"])
         self.assertEqual(result["results"][0]["product_id"], "TRX1")
+
+    def test_extract_order_id(self):
+        self.assertEqual(
+            extract_order_id("Can you check order demo-1001?"),
+            "DEMO-1001",
+        )
+        self.assertIsNone(extract_order_id("Can you check my order?"))
 
     def test_order_lookup(self):
         result = order_lookup("demo-1001")
