@@ -14,9 +14,8 @@ class EvaluationLabTests(unittest.TestCase):
     def test_retrieval_fixture_can_be_displayed(self):
         cases = [{
             "case_id": "R1",
-            "relevant_ids": ["m1"],
-            "retrieved_ids": ["m1", "m2", "m3"],
-            "k": 3,
+            "relevant_memory_ids": ["m1"],
+            "retrieved_memory_ids": ["m1", "m2", "m3"],
         }]
         result = build_evaluation_lab(runs=[], retrieval_cases=cases)
         self.assertEqual(result["evaluations"]["retrieval"]["status"], "completed")
