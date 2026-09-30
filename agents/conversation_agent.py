@@ -19,6 +19,10 @@ RETRIEVAL_K = 3
 GENERATION_TEMPERATURE = 0.7
 GENERATION_MAX_TOKENS = 250
 
+# Initial empirical gate from EXP002. This is a measured prototype threshold,
+# not a production-calibrated classifier boundary.
+ANSWER_RELEVANCE_THRESHOLD = 0.46
+
 
 def detect_language(text: str) -> str:
     """Detect Arabic by script presence, not by numeric content."""
@@ -68,28 +72,28 @@ class ConversationAgent:
         except Exception:
             return 0.0
 
-    def _classify_answer(self, question: str, answer: str, lang: str) -> bool:
-        system = (
-            "Does the answer address the question? Reply only YES or NO."
-            if lang == "en"
-            else "هل تجيب الإجابة على السؤال؟ أجب فقط بنعم أو لا."
+    def _classify_answer(
+        self,
+        question: str,
+        answer: str,
+        lang: str,
+        similarity: float | None = None,
+    ) -> bool:
+        """Validate intake relevance using the measured embedding signal.
+
+        The local 3B LLM was tested as a binary relevance classifier in EXP002
+        and incorrectly rejected clearly relevant answers. The embedding model
+        showed measurable separation, so it is the current deterministic gate.
+        lang is retained for call compatibility and future language-specific
+        validation.
+        """
+        del lang
+        score = (
+            self._semantic_similarity(question, answer)
+            if similarity is None
+            else similarity
         )
-        try:
-            response = self.client.chat(
-                messages=[
-                    {"role": "system", "content": system},
-                    {
-                        "role": "user",
-                        "content": f"Question: {question}\nAnswer: {answer}",
-                    },
-                ],
-                max_tokens=3,
-                temperature=0.0,
-            )
-            result = response["content"].strip().lower()
-            return result.startswith("yes") or result.startswith("نعم")
-        except Exception:
-            return False
+        return score >= ANSWER_RELEVANCE_THRESHOLD
 
     def _clarify(self, session: str, section: str, field: str, lang: str) -> str:
         key = (session, section, field)
@@ -147,12 +151,22 @@ class ConversationAgent:
                 similarity = self._semantic_similarity(question or "", user_message)
                 similarity_latency_ms = round((time.perf_counter() - similarity_started) * 1000, 2)
                 classification_started = time.perf_counter()
-                relevant = self._classify_answer(question or "", user_message, lang)
-                classification_latency_ms = round((time.perf_counter() - classification_started) * 1000, 2)
+                relevant = self._classify_answer(
+                    question or "",
+                    user_message,
+                    lang,
+                    similarity=similarity,
+                )
+                classification_latency_ms = round(
+                    (time.perf_counter() - classification_started) * 1000,
+                    2,
+                )
                 run["metrics"]["classification"] = {
                     "semantic_similarity": similarity,
+                    "semantic_similarity_threshold": ANSWER_RELEVANCE_THRESHOLD,
                     "semantic_similarity_latency_ms": similarity_latency_ms,
                     "classification_relevant": relevant,
+                    "classification_method": "embedding_threshold",
                     "classification_latency_ms": classification_latency_ms,
                 }
                 self.last_turn_metrics = run["metrics"]["classification"]
