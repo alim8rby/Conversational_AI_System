@@ -70,7 +70,7 @@ The project is intentionally more than a chatbot demo: it demonstrates how to **
 |---|---|
 | Application | Python, Flask |
 | LLM | Ollama |
-| Embeddings | Together AI |
+| Embeddings | Ollama |
 | Vector memory | Local JSON vector store |
 | Voice | gTTS |
 | Frontend | HTML / CSS / JavaScript |
@@ -88,7 +88,7 @@ The project is intentionally more than a chatbot demo: it demonstrates how to **
 4. During structured intake, `InterviewManager` advances through defined sections and fields.
 5. Candidate answers are checked for validity and relevance.
 6. Once the structured flow is complete, the agent moves into contextual dialogue.
-7. Relevant session-scoped memories are retrieved from Pinecone.
+7. Relevant session-scoped memories are retrieved from the local vector store.
 8. The LLM generates the response.
 9. The response is converted to speech.
 10. The run records latency, stage metrics, token usage, status, and errors.
@@ -379,6 +379,17 @@ Deployment-level requirements that remain outside the demo repository include:
 - Ollama installed and running
 - the selected local Ollama models
 
+## Ollama models
+
+Install the local models used by the default configuration:
+
+```bash
+ollama pull llama3.2:3b
+ollama pull nomic-embed-text
+```
+
+Make sure Ollama is running before starting the Flask application.
+
 ## Setup
 
 ```bash
@@ -419,7 +430,7 @@ docker run --env-file .env -p 8000:8000 conversational-ai-system
 ## Tests
 
 ```bash
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -vcover -s tests -v
 ```
 
 CI additionally runs:
