@@ -61,6 +61,17 @@ class ConversationAgent:
         self.histories: Dict[str, List[dict]] = {}
         self.clarify_counts: Dict[Tuple[str, str, str], int] = {}
 
+    def start_session(self, session_id: str, lang: str = "en") -> str:
+        """Initialize an intake session and return its first question."""
+        self.interviewer.init_session(session_id)
+        self.histories.setdefault(session_id, [])
+        section, field = self.interviewer.next_field(session_id)
+        if not section:
+            self.awaiting.pop(session_id, None)
+            return ""
+        self.awaiting[session_id] = (section, field)
+        return self.interviewer.get_prompt(session_id, lang) or ""
+
     def _semantic_similarity(self, question: str, answer: str) -> float:
         try:
             embeddings = self.client.embed([question, answer])
@@ -177,8 +188,12 @@ class ConversationAgent:
                 self.clarify_counts.pop((session_id, section, field), None)
 
             section, field = self.interviewer.next_field(session_id)
-            prompt = self.interviewer.get_prompt(session_id, lang)
-            self.awaiting[session_id] = (section, field)
+            if section:
+                prompt = self.interviewer.get_prompt(session_id, lang)
+                self.awaiting[session_id] = (section, field)
+            else:
+                prompt = ""
+                self.awaiting.pop(session_id, None)
             run["metrics"]["dialogue"]["next_section"] = section
             run["metrics"]["dialogue"]["next_field"] = field
             finish_run(run)
