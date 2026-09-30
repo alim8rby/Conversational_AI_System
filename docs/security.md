@@ -2,8 +2,9 @@
 
 ## Implemented
 
-- Secrets are supplied through environment variables; `.env` is ignored by Git.
-- Provider credentials are required by readiness validation.
+- `.env` is ignored by Git.
+- No AI provider credentials are required.
+- Ollama runs as a local service and is configured through `OLLAMA_BASE_URL`.
 - Request body size is capped at 16 KiB.
 - Session IDs are capped at 128 characters.
 - Chat messages are capped at 4,000 characters.
@@ -11,27 +12,15 @@
 - Observability stores raw user input only when explicitly enabled.
 - Docker runs the application as a non-root user.
 - CORS is configurable through `CORS_ORIGINS`.
-- Responses include baseline browser security headers:
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: DENY`
-  - `Referrer-Policy: no-referrer`
-  - `Cache-Control: no-store`
+- Baseline browser security headers are applied.
 - CI has read-only repository permissions and runs dependency auditing.
 
 ## Deployment requirements
 
-The deployment environment should additionally provide:
+For a public deployment, additionally provide TLS, authentication/authorization, rate limiting, centralized logging, network controls around the Ollama service, and dependency/base-image update policies.
 
-1. TLS termination / HTTPS.
-2. Secret management outside the repository.
-3. Authentication and authorization for operational endpoints.
-4. Network restrictions around provider and vector-database access.
-5. Centralized logs with retention controls.
-6. Rate limiting at the edge.
-7. Dependency and base-image update policy.
+The demo does not claim that operational endpoints are authenticated.
 
-The current demo does **not** claim that its operational endpoints are authenticated. That is a deliberate documented boundary rather than hidden security debt.
+## Verification
 
-## Verification rule
-
-Security controls are considered implemented only when their behavior is covered by tests or directly verified in the deployment environment. CI configuration is committed here, but runtime CI execution has not been locally verified in this workspace.
+Controls should be backed by automated tests or direct deployment verification. Repository configuration alone is not treated as runtime evidence.
