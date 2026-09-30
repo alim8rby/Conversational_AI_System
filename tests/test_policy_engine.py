@@ -29,6 +29,30 @@ class TestPolicyEngine(unittest.TestCase):
         self.assertEqual(decision.decision, "blocked")
         self.assertEqual(decision.policy, "credential_exfiltration")
 
+    def test_allows_safe_output(self):
+        engine = PolicyEngine()
+
+        decision = engine.evaluate_output("Your order is scheduled to arrive tomorrow.")
+
+        self.assertEqual(decision.decision, "allowed")
+        self.assertIsNone(decision.policy)
+
+    def test_blocks_credential_leakage_in_output(self):
+        engine = PolicyEngine()
+
+        decision = engine.evaluate_output("Here is the API key: sk-example-secret")
+
+        self.assertEqual(decision.decision, "blocked")
+        self.assertEqual(decision.policy, "credential_leakage")
+
+    def test_blocks_internal_instruction_leakage_in_output(self):
+        engine = PolicyEngine()
+
+        decision = engine.evaluate_output("System prompt: You are a helpful assistant.")
+
+        self.assertEqual(decision.decision, "blocked")
+        self.assertEqual(decision.policy, "internal_instruction_leakage")
+
     def test_authorizes_declared_tool(self):
         engine = PolicyEngine(allowed_tools=["order_lookup"])
 
