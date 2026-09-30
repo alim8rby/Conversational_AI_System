@@ -1,49 +1,30 @@
-# Run Observability Query Layer
+# Run Observability
 
-The run store is the read-only evidence layer for persisted conversational runs.
+The run store is the read-only evidence layer for conversational turns.
 
-## Run metadata
-
-Each persisted run records reproducibility metadata without storing provider secrets:
+## Recorded metadata
 
 - application version
 - LLM model
 - embedding model
-- Pinecone index
+- local memory store
 - prompt version
 - retrieval K
 - generation temperature
 - generation max tokens
 
-It also records total end-to-end latency in addition to stage-level latency.
+Stage and total latency are recorded when available.
 
-## Supported queries
+## Query layer
 
-- list all valid run records
-- retrieve one run by run ID
-- summarize total, successful, failed, and failure-rate counts
+`RunStore` supports listing runs, retrieving a run by ID, and summary statistics.
 
-## Design
-
-The query layer does not modify run records and does not change conversation behavior.
-
-```text
+```
 Persisted Run JSON
        ↓
     RunStore
        ↓
- Run / Summary
-       ↓
-Operations UI / Failure Observatory
+Operations / Failure Observatory
 ```
 
-This layer intentionally stays small. More advanced aggregation should be added only when a concrete monitoring requirement is identified.
-
-
-## Privacy
-
-Raw user input is redacted in persisted run records by default. Set `OBSERVABILITY_STORE_INPUT=true` only for an explicitly controlled debugging environment.
-
-## Latency
-
-`total_latency_ms` represents the complete API request path, including voice generation, when the Flask endpoint is used. Stage-specific latency remains available for classification, retrieval, generation, and voice.
+Raw user input is redacted by default. Enable `OBSERVABILITY_STORE_INPUT=true` only for controlled local debugging.
