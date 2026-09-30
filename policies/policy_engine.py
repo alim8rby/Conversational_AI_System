@@ -50,6 +50,47 @@ class PolicyEngine:
                 "The request attempts to obtain protected credentials.",
             ),
         ]
+        self._output_rules = [
+            (
+                "credential_leakage",
+                (
+                    "api key:",
+                    "api_key:",
+                    "password:",
+                    "secret key:",
+                    "access token:",
+                    "authorization token:",
+                ),
+                "The generated response appears to expose protected credentials.",
+            ),
+            (
+                "internal_instruction_leakage",
+                (
+                    "system prompt:",
+                    "developer prompt:",
+                    "internal instructions:",
+                    "hidden system instructions:",
+                ),
+                "The generated response appears to expose internal instructions.",
+            ),
+        ]
+
+    def evaluate_output(self, response: str) -> PolicyDecision:
+        """Evaluate generated output before it is returned to the user."""
+        text = response.strip().lower()
+
+        for policy_id, phrases, reason in self._output_rules:
+            if self._matches_any(text, phrases):
+                return PolicyDecision(
+                    decision="blocked",
+                    reason=reason,
+                    policy=policy_id,
+                )
+
+        return PolicyDecision(
+            decision="allowed",
+            reason="No configured output blocking policy matched the response.",
+        )
 
     def evaluate(self, user_message: str) -> PolicyDecision:
         text = user_message.strip().lower()
