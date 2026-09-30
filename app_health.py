@@ -11,7 +11,7 @@ def health_response():
 
 def readiness_response():
     try:
-        load_settings(require_providers=True)
+        load_settings(require_runtime=True)
     except RuntimeError as exc:
         return jsonify({"status": "not_ready", "reason": str(exc)}), 503
     return jsonify({"status": "ready"}), 200
