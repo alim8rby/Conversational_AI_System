@@ -14,8 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PORT: "8000"
-      TOGETHER_API_KEY: ""
-      PINECONE_API_KEY: ""
     steps:
       - name: Checkout
         uses: actions/checkout@v4
