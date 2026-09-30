@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict
 
 
@@ -91,3 +91,38 @@ class ToolManager:
         if not isinstance(result, dict):
             raise TypeError(f"Tool '{tool_id}' must return a dictionary.")
         return result
+
+    def prepare_and_execute(
+        self,
+        tool_id: str,
+        user_message: str,
+    ) -> Dict[str, Any]:
+        """Prepare inputs and execute a single tool."""
+        inputs = self.prepare_inputs(tool_id, user_message)
+        missing = self.missing_inputs(tool_id, inputs)
+        if missing:
+            return {
+                "tool_id": tool_id,
+                "status": "requires_input",
+                "missing_inputs": missing,
+                "inputs": inputs,
+            }
+
+        result = self.execute(tool_id, **inputs)
+        return {
+            "tool_id": tool_id,
+            "status": "executed",
+            "inputs": inputs,
+            "result": result,
+        }
+
+    def execute_required(
+        self,
+        tool_ids: list[str],
+        user_message: str,
+    ) -> list[Dict[str, Any]]:
+        """Execute all registered tools required by a workflow, in order."""
+        executions = []
+        for tool_id in tool_ids:
+            executions.append(self.prepare_and_execute(tool_id, user_message))
+        return executions
