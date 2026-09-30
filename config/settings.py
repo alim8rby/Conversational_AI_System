@@ -38,8 +38,13 @@ class Settings:
 
 
 def load_settings(require_runtime: bool = True) -> Settings:
+    """Load application settings, optionally requiring Ollama runtime config."""
     return Settings(
-        ollama_base_url=_required("OLLAMA_BASE_URL") if require_providers else os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        ollama_base_url=(
+            _required("OLLAMA_BASE_URL")
+            if require_runtime
+            else os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        ),
         llm_model=os.getenv("LLM_MODEL", "llama3.2:3b"),
         embed_model=os.getenv("EMBED_MODEL", "nomic-embed-text"),
         memory_store_path=os.getenv("MEMORY_STORE_PATH", "data/memory.json"),
