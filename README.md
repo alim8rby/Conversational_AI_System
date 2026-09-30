@@ -4,6 +4,8 @@ A local-first, stateful conversational AI application built to demonstrate the e
 
 The system combines:
 
+- domain-configurable workflows
+- policy and guardrail evaluation
 - structured multi-turn dialogue
 - session state
 - local LLM inference with Ollama
@@ -27,8 +29,11 @@ Browser
 Flask API
    ↓
 ConversationAgent
-   ├── InterviewManager
+   ├── PolicyEngine
+   ├── WorkflowManager
+   ├── ToolManager
    ├── OllamaClient → local LLM
+   ├── KnowledgeBase → domain retrieval
    ├── MemoryManager → local semantic memory
    └── VoiceEngine
    ↓
@@ -301,7 +306,7 @@ Do not interpret repository structure as proof of live model, retrieval, voice, 
 
 The project demonstrates:
 
-> **How to build, inspect, evaluate, debug, and improve a stateful conversational AI system.**
+> **How to build, inspect, evaluate, debug, and improve a modular, domain-aware conversational AI system.**
 
 It is intentionally more than a chatbot demo.
 
