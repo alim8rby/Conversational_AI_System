@@ -48,7 +48,7 @@ ORDERS = {
         "carrier": None,
         "estimated_delivery": None,
     },
-}
+]
 
 
 def extract_order_id(text: str) -> str | None:
@@ -101,3 +101,8 @@ def order_lookup(order_id: str) -> Dict[str, Any]:
         **order,
         "source": "demo_order_system",
     }
+
+
+def extract_product_query(text: str) -> Dict[str, Any]:
+    """Use the complete user request as the product-search query."""
+    return {"query": text.strip()}
