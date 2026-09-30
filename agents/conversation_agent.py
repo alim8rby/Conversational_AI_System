@@ -12,7 +12,7 @@ from observability.run import new_run, finish_run, record_error
 
 MODEL_NAME = os.getenv("LLM_MODEL", "llama3.2:3b")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
-INDEX_NAME = os.getenv("MEMORY_STORE_PATH", "data/memory.json")
+MEMORY_STORE_PATH = os.getenv("MEMORY_STORE_PATH", "data/memory.json")
 APP_VERSION = os.getenv("APP_VERSION", os.getenv("GIT_COMMIT", "unknown"))
 PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
 RETRIEVAL_K = 3
@@ -22,7 +22,7 @@ GENERATION_MAX_TOKENS = 250
 
 def detect_language(text: str) -> str:
     """Detect Arabic by script presence, not by numeric content."""
-    if re.search(r"[\u0600-\u06FF]", text):
+    if re.search(r"[؀-ۿ]", text):
         return "ar"
     return "en"
 
@@ -39,10 +39,19 @@ def is_valid_answer(text: str) -> bool:
 class ConversationAgent:
     """Stateful conversational agent combining structured intake and semantic memory."""
 
-    def __init__(self, model_name: str = MODEL_NAME, embed_model: str = EMBED_MODEL, index_name: str = INDEX_NAME):
-        self.client = OllamaClient(base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"), model=model_name, embed_model=embed_model)
+    def __init__(
+        self,
+        model_name: str = MODEL_NAME,
+        embed_model: str = EMBED_MODEL,
+        store_path: str = MEMORY_STORE_PATH,
+    ):
+        self.client = OllamaClient(
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            model=model_name,
+            embed_model=embed_model,
+        )
         self.model = model_name
-        self.mem = MemoryManager(embed_model, index_name)
+        self.mem = MemoryManager(embed_model, store_path)
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
         self.histories: Dict[str, List[dict]] = {}
@@ -59,12 +68,17 @@ class ConversationAgent:
             return 0.0
 
     def _classify_answer(self, question: str, answer: str, lang: str) -> bool:
-        system = "Does the answer address the question? Reply only YES or NO." if lang == "en" else "هل تجيب الإجابة على السؤال؟ أجب فقط بنعم أو لا."
+        system = (
+            "Does the answer address the question? Reply only YES or NO."
+            if lang == "en"
+            else "هل تجيب الإجابة على السؤال؟ أجب فقط بنعم أو لا."
+        )
         try:
             response = self.client.chat(
                 messages=[
                     {"role": "system", "content": system},
-                    {"role": "user", "content": f"Question: {question}\nAnswer: {answer}"},
+                    {"role": "user", "content": f"Question: {question}
+Answer: {answer}"},
                 ],
                 max_tokens=3,
                 temperature=0.0,
@@ -102,7 +116,7 @@ class ConversationAgent:
                 "application_version": APP_VERSION,
                 "model": self.model,
                 "embedding_model": self.mem.embed_model,
-                "memory_store": INDEX_NAME,
+                "memory_store": MEMORY_STORE_PATH,
                 "prompt_version": PROMPT_VERSION,
                 "retrieval_k": RETRIEVAL_K,
                 "temperature": GENERATION_TEMPERATURE,
@@ -132,7 +146,12 @@ class ConversationAgent:
                 classification_started = time.perf_counter()
                 relevant = self._classify_answer(question or "", user_message, lang)
                 classification_latency_ms = round((time.perf_counter() - classification_started) * 1000, 2)
-                run["metrics"]["classification"] = {"semantic_similarity": similarity, "semantic_similarity_latency_ms": similarity_latency_ms, "classification_relevant": relevant, "classification_latency_ms": classification_latency_ms}
+                run["metrics"]["classification"] = {
+                    "semantic_similarity": similarity,
+                    "semantic_similarity_latency_ms": similarity_latency_ms,
+                    "classification_relevant": relevant,
+                    "classification_latency_ms": classification_latency_ms,
+                }
                 self.last_turn_metrics = run["metrics"]["classification"]
                 if similarity < 0.30 or not relevant:
                     finish_run(run)
@@ -152,7 +171,10 @@ class ConversationAgent:
         retrieval_started = time.perf_counter()
         memories = self.mem.retrieve(session_id, user_message, k=RETRIEVAL_K)
         retrieval_latency_ms = round((time.perf_counter() - retrieval_started) * 1000, 2)
-        run["metrics"]["retrieval"] = {"retrieval_latency_ms": retrieval_latency_ms, "retrieved_count": len(memories)}
+        run["metrics"]["retrieval"] = {
+            "retrieval_latency_ms": retrieval_latency_ms,
+            "retrieved_count": len(memories),
+        }
         self.last_turn_metrics = run["metrics"]["retrieval"]
         memory_context = "\n".join(item["text"] if isinstance(item, dict) else item for item in memories)
         system = (
@@ -179,11 +201,15 @@ class ConversationAgent:
             usage = response.get("usage")
         except Exception:
             latency = round((time.perf_counter() - generation_started) * 1000, 2)
-            run["metrics"]["generation"] = {"generation_latency_ms": latency, "generation_error": True}
+            run["metrics"]["generation"] = {
+                "generation_latency_ms": latency,
+                "generation_error": True,
+            }
             record_error(run, "generation", "LLM generation failed")
             finish_run(run, "failed")
             self.last_turn_metrics = run["metrics"]["generation"]
             return "Sorry, something went wrong. Please try again."
+
         run["metrics"]["generation"] = {
             "generation_latency_ms": round((time.perf_counter() - generation_started) * 1000, 2),
             "generation_error": False,
@@ -194,7 +220,10 @@ class ConversationAgent:
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),
             }
-        self.last_turn_metrics = {**getattr(self, "last_turn_metrics", {}), **run["metrics"]["generation"]}
+        self.last_turn_metrics = {
+            **getattr(self, "last_turn_metrics", {}),
+            **run["metrics"]["generation"],
+        }
         finish_run(run)
 
         self.histories[session_id].extend([
