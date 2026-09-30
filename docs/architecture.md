@@ -1,75 +1,45 @@
 # System Architecture
 
-## Frozen architecture
+## Runtime architecture
 
-```text
+```
 Browser
   ↓
-API
+Flask API
   ↓
-Conversation Orchestrator
+ConversationAgent
+  ├── InterviewManager
+  ├── Ollama LLM
+  ├── Local Semantic Memory
+  └── VoiceEngine
   ↓
-State / Memory / Retrieval
+Run / Failure Evidence
   ↓
-LLM
-  ↓
-Structured Response
-  ↓
-Voice
-  ↓
-Observability / Evaluation
+Evaluation / Operations
 ```
 
-## Runtime responsibilities
+## Components
 
-### API
+- **Flask API** — request validation and product endpoints.
+- **ConversationAgent** — coordinates dialogue, classification, retrieval, generation, and evidence.
+- **InterviewManager** — deterministic structured session state.
+- **OllamaClient** — local model interface for chat and embeddings.
+- **MemoryManager** — session-scoped semantic memory stored locally in JSON.
+- **VoiceEngine** — text-to-speech output.
+- **Observability** — persisted run and failure evidence.
+- **Evaluation** — deterministic, retrieval, generation, voice, and integrated evaluation contracts.
+- **Product projections** — Session State, Memory Inspector, Evaluation Lab, Failure Observatory, and Operations.
 
-Validates request boundaries, routes product surfaces, and keeps client-facing errors generic.
+## Design principle
 
-### Conversation Orchestrator
+The application is deliberately local-first. No paid AI provider or hosted vector database is required to develop or demonstrate the system.
 
-Coordinates intake state, answer validation, retrieval, generation, and run evidence.
+The provider boundary is isolated in `providers/ollama_client.py`, so model infrastructure can be changed later without rewriting the application architecture.
 
-### State
+## Evidence principles
 
-`InterviewManager` provides deterministic structured progression across defined sections and fields.
-
-### Memory
-
-`MemoryManager` stores and retrieves session-scoped semantic memories through Pinecone.
-
-### LLM
-
-Together AI provides language-model inference and embeddings.
-
-### Voice
-
-The voice layer converts generated responses into audio and records voice success/latency evidence.
-
-### Evidence
-
-Run and failure stores provide read-only evidence consumed by evaluation and operations.
-
-## Product architecture
-
-```text
-Conversation
-     │
-     ├── Session State
-     ├── Memory Inspector
-     ├── Evaluation Lab
-     ├── Failure Observatory
-     └── Operations
-```
-
-These surfaces are projections over the same underlying evidence rather than independent implementations of system state.
-
-## Design principles
-
-1. Preserve the working core before refactoring it.
-2. Separate conversation behavior from evidence collection.
-3. Make evaluation evidence explicit.
-4. Never convert unavailable measurements into zero.
-5. Treat failures as inputs to controlled experiments.
-6. Keep product inspection surfaces read-only.
-7. Keep sensitive conversational data out of observability by default.
+1. Measure behavior instead of assuming it works.
+2. Keep unavailable measurements explicitly blocked or not measured.
+3. Treat failures as evidence for controlled experiments.
+4. Keep inspection surfaces read-only.
+5. Redact conversational input from persisted runs by default.
