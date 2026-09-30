@@ -135,11 +135,27 @@ MEMORY_STORE_PATH=data/memory.json
 PORT=8000
 ```
 
+Index the domain knowledge before the first run:
+
+```bash
+python scripts/index_domain.py
+```
+
+This creates the local vector store used by RAG. Re-run the command whenever domain knowledge documents change.
+
 Start the application:
 
 ```bash
 python app.py
 ```
+
+For a deterministic local runtime check:
+
+```bash
+python scripts/runtime_smoke_test.py
+```
+
+The smoke test verifies the health/readiness endpoints, starts a session, and sends a real product question through the Flask application.
 
 Open:
 
