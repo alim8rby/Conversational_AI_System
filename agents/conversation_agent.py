@@ -11,6 +11,7 @@ from domains.domain_config import DomainConfig
 from interview_manager import InterviewManager
 from knowledge.context_builder import KnowledgeContextBuilder
 from knowledge.knowledge_base import KnowledgeBase
+from workflows.workflow_manager import WorkflowManager
 from memory.memory_manager import MemoryManager
 from observability.run import new_run, finish_run, record_error
 
@@ -70,6 +71,7 @@ class ConversationAgent:
         self.mem = MemoryManager(embed_model, store_path)
         self.knowledge = KnowledgeBase(embed_model=embed_model)
         self.context_builder = KnowledgeContextBuilder()
+        self.workflow_manager = WorkflowManager(self.domain, self.client)
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
         self.histories: Dict[str, List[dict]] = {}
@@ -233,6 +235,29 @@ class ConversationAgent:
             return prompt or ""
 
         sheet = self.interviewer.get_flat_sheet(session_id)
+
+        workflow_started = time.perf_counter()
+        try:
+            workflow_plan = self.workflow_manager.route_and_plan(user_message)
+        except Exception:
+            run["metrics"]["workflow"] = {
+                "workflow_error": True,
+                "workflow_latency_ms": round(
+                    (time.perf_counter() - workflow_started) * 1000, 2
+                ),
+            }
+            record_error(run, "dialogue", "Workflow routing failed")
+            finish_run(run, "failed")
+            self.last_turn_metrics = run["metrics"]["workflow"]
+            return "Sorry, I could not determine how to handle that request. Please try again."
+
+        workflow_plan["workflow_latency_ms"] = round(
+            (time.perf_counter() - workflow_started) * 1000, 2
+        )
+        run["metrics"]["workflow"] = workflow_plan
+        self.last_run = run
+        self.last_turn_metrics = run["metrics"]["workflow"]
+
         retrieval_started = time.perf_counter()
         memories = self.mem.retrieve(session_id, user_message, k=RETRIEVAL_K)
         knowledge_results = self.knowledge.retrieve(user_message, k=RETRIEVAL_K)
@@ -259,6 +284,7 @@ class ConversationAgent:
             "You are a concise conversational AI. Use the provided session information, "
             "relevant conversation memory, and domain knowledge to answer the user. "
             "Treat domain knowledge as the source of truth for business facts. "
+            "Follow the selected workflow plan and do not claim a tool action has happened unless a tool actually ran. "
             "Do not invent product availability, order status, or policy details. "
             "If the available knowledge does not answer the question, say so rather than guessing. "
             "Do not claim to be a clinician, diagnose the user, or imply that this prototype replaces professional care."
