@@ -147,13 +147,31 @@ Open:
 | `GET /` | Browser application |
 | `GET /health` | Process health |
 | `GET /ready` | Local AI readiness |
-| `POST /chat` | Conversation |
+| `POST /chat` | Conversation turn |\n| `POST /session/<id>/start` | Start intake and return the first question |
 | `GET /session/<id>/state` | Session progress |
 | `GET /session/<id>/memory` | Memory inspection |
 | `GET /evaluation` | Evaluation Lab |
 | `GET /failures` | Failure Observatory |
 | `GET /failures/<id>` | Failure detail |
 | `GET /operations` | Operations snapshot |
+
+## Conversation lifecycle
+
+The intake lifecycle is explicit:
+
+```text
+POST /session/<id>/start
+        ↓
+first intake question
+        ↓
+POST /chat
+        ↓
+record answer → next question
+        ↓
+...
+```
+
+The first user message is never silently consumed as a session-start trigger. `/chat` is an answer turn once a session has been started.
 
 ## Evaluation
 
