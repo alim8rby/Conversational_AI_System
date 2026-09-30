@@ -2,28 +2,18 @@
 
 ## Purpose
 
-The conversational system retrieves memories from a vector store, but retrieval quality was not previously measurable. This layer establishes a provider-independent evaluation contract before connecting the evaluator to live Pinecone results.
+The application uses local embeddings and a local vector store. Retrieval quality is evaluated independently from generation.
 
 ## Metrics
 
-- Precision@K: relevant results among the top K retrieved results.
-- Recall@K: relevant results recovered within the top K divided by all relevant results.
-- MRR: reciprocal rank of the first relevant result, averaged across queries.
+- **Precision@K** — relevant results among the top K.
+- **Recall@K** — relevant results recovered within the top K.
+- **MRR** — reciprocal rank of the first relevant result.
 
-## Evaluation flow
+## Flow
 
-Query → Retriever → Ranked memory IDs → Retrieval evaluator → Precision@K / Recall@K / MRR
+`Query → Ollama embedding → local memory search → ranked memory IDs → metrics`
 
-## V1 fixture
+The synthetic benchmark validates metric calculations. Live evaluation uses `MemoryManager.retrieve()` and requires Ollama to be running with the configured embedding model.
 
-The synthetic fixture validates the metric implementation and evaluation contract. It is not evidence of production retrieval quality.
-
-## Next integration step
-
-Wire the same evaluator to MemoryManager.retrieve(), preserve memory_id and rank, and record the real provider/model/index configuration. Only provider-backed runs should be reported as system retrieval results.
-
-## Live integration
-
-`evaluation/run_live_retrieval_eval.py` uses the existing `MemoryManager.retrieve()` contract without changing retrieval behavior. It requires provider credentials and a populated session, and records the embedding model and Pinecone index used for the run.
-
-The live runner evaluates one query at a time so that relevance judgments are explicit. Its output must not be treated as a benchmark result unless the relevant memory IDs have been independently established.
+A live score is only a system result when the relevant memory IDs have been independently established.
