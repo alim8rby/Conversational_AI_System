@@ -157,7 +157,11 @@ class ConversationAgent:
             current = self.awaiting.get(session_id)
             if current:
                 section, field = current
-                question = self.interviewer.get_prompt(session_id, lang)
+                question = (
+                    self.interviewer.get_prompt(session_id, lang)
+                    if field == "main"
+                    else self.interviewer.get_section_prompt(section, lang)
+                )
                 similarity_started = time.perf_counter()
                 similarity = self._semantic_similarity(question or "", user_message)
                 similarity_latency_ms = round((time.perf_counter() - similarity_started) * 1000, 2)
