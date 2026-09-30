@@ -1,360 +1,134 @@
 # Conversational AI System
 
-A portfolio-grade **stateful conversational AI system** built around structured dialogue, semantic memory, voice interaction, reproducible evaluation, failure analysis, experiments, and production-oriented observability.
+A local-first, stateful conversational AI application built to demonstrate the engineering around an AI system — not just the model response.
 
-The project is intentionally more than a chatbot demo: it demonstrates how to **design, measure, debug, and operate a conversational AI system**.
+The system combines:
 
-## What this project demonstrates
+- structured multi-turn dialogue
+- session state
+- local LLM inference with Ollama
+- local embeddings with Ollama
+- session-scoped semantic memory
+- retrieval inspection
+- voice output
+- run-level observability
+- deterministic and retrieval evaluation
+- failure analysis
+- controlled experiments
+- operations monitoring
+- Docker and CI/CD
+- baseline application security
 
-- Stateful conversation orchestration
-- Structured intake and state transitions
-- Multilingual interaction
-- Session-scoped semantic memory
-- Retrieval inspection and evaluation
-- LLM generation
-- Text-to-speech output
-- Run-level observability
-- Deterministic evaluation
-- Failure taxonomy and evidence
-- Controlled experiments
-- Session-state product surface
-- Memory Inspector
-- Evaluation Lab
-- Failure Observatory
-- Operations UI
-- Docker deployment
-- CI/CD and dependency auditing
-- Basic application security hardening
+## Architecture
 
----
-
-## Product Architecture
-
-```text
-                         Browser
-                            │
-                            ▼
-                       Flask API
-                            │
-                            ▼
-                 Conversation Orchestrator
-                     │       │       │
-                     ▼       ▼       ▼
-                  State   Memory   Retrieval
-                     │       │       │
-                     └───────┼───────┘
-                             ▼
-                            LLM
-                             │
-                             ▼
-                    Structured Response
-                             │
-                             ▼
-                           Voice
-                             │
-              ┌──────────────┴──────────────┐
-              ▼                             ▼
-        Observability                  Evaluation
-              │                             │
-              ▼                             ▼
-      Failure Observatory             Evaluation Lab
-              │                             │
-              └──────────────┬──────────────┘
-                             ▼
-                       Operations UI
+```
+Browser
+   ↓
+Flask API
+   ↓
+ConversationAgent
+   ├── InterviewManager
+   ├── OllamaClient → local LLM
+   ├── MemoryManager → local semantic memory
+   └── VoiceEngine
+   ↓
+Observability
+   ├── Runs
+   └── Failures
+   ↓
+Evaluation
+   ├── Dialogue
+   ├── Retrieval
+   ├── Generation
+   └── Voice
+   ↓
+Operations
 ```
 
-### Core technology
+The important design idea is the full engineering loop:
+
+```
+Build → Instrument → Evaluate → Observe Failure
+                    ↓
+             Experiment → Validate
+```
+
+## Local stack
 
 | Layer | Technology |
 |---|---|
-| Application | Python, Flask |
+| Application | Python 3.11, Flask |
 | LLM | Ollama |
 | Embeddings | Ollama |
-| Vector memory | Local JSON vector store |
+| Semantic memory | Local JSON vector store |
 | Voice | gTTS |
 | Frontend | HTML / CSS / JavaScript |
 | Container | Docker |
-| CI/CD | GitHub Actions |
-| Evaluation | Python test/evaluation modules |
+| CI | GitHub Actions |
 
----
+No paid AI API or hosted vector database is required.
 
-## System Flow
+## Requirements
 
-1. A client creates a session and sends a message.
-2. The API validates request boundaries.
-3. The conversation agent determines the current interaction state.
-4. During structured intake, `InterviewManager` advances through defined sections and fields.
-5. Candidate answers are checked for validity and relevance.
-6. Once the structured flow is complete, the agent moves into contextual dialogue.
-7. Relevant session-scoped memories are retrieved from the local vector store.
-8. The LLM generates the response.
-9. The response is converted to speech.
-10. The run records latency, stage metrics, token usage, status, and errors.
-11. Evaluation and failure layers consume that evidence without modifying the conversation itself.
+- Python 3.11
+- Ollama
+- Ollama models:
+  - `llama3.2:3b`
+  - `nomic-embed-text`
 
----
+Install the models:
 
-# Product Surfaces
-
-## 1. Conversation
-
-The primary user experience:
-
-`POST /chat`
-
-Returns:
-
-- response text
-- generated audio path
-
-## 2. Session State
-
-`GET /session/<session_id>/state`
-
-Exposes a safe read-only projection of:
-
-- current section
-- current field
-- completed fields
-- completion rate
-- section progress
-
-Answer values are not exposed through this product surface.
-
-## 3. Memory Inspector
-
-`GET /session/<session_id>/memory?q=<query>&k=<k>`
-
-Shows:
-
-- retrieved memory IDs
-- ranks
-- similarity scores
-- retrieved text
-
-This creates an inspectable bridge between semantic retrieval and evaluation.
-
-## 4. Evaluation Lab
-
-`GET /evaluation`
-
-Unifies:
-
-- deterministic dialogue evaluation
-- retrieval evaluation when real cases are supplied
-- integrated run metrics
-- generation measurement status
-- voice measurement status
-
-The system explicitly distinguishes **measured**, **blocked**, and **not measured** evidence.
-
-## 5. Failure Observatory
-
-`GET /failures`
-
-Supports filtering by:
-
-- category
-- stage
-- severity
-- status
-
-Failures retain:
-
-- expected behavior
-- actual behavior
-- evidence
-- root cause when known
-- experiment linkage
-- lifecycle status
-
-Individual evidence:
-
-`GET /failures/<failure_id>`
-
-## 6. Operations
-
-`GET /operations`
-
-Combines:
-
-- run volume
-- success/failure rate
-- latency
-- stage-level errors
-- failure summaries
-- evaluation status
-
-Health and readiness remain separate:
-
-- `GET /health`
-- `GET /ready`
-
----
-
-# Evaluation Philosophy
-
-A major design principle is:
-
-> **Do not turn missing evidence into a score of zero, and do not call an optimization successful without measurement.**
-
-The system separates:
-
-### Deterministic evaluation
-
-Examples:
-
-- state transitions
-- invalid-answer handling
-- language routing
-- session isolation
-- intake completion
-
-### Retrieval evaluation
-
-Metrics:
-
-- Precision@K
-- Recall@K
-- MRR
-
-### Generation evaluation
-
-Requires actual model outputs plus an explicit judge or human-review protocol.
-
-### Voice evaluation
-
-Uses actual TTS execution metrics.
-
-### Operational evaluation
-
-Tracks:
-
-- success/failure rate
-- latency
-- token usage when available
-- voice success rate
-- stage-level failures
-
----
-
-# Failure → Experiment → Validation
-
-The project treats failures as engineering evidence.
-
-```text
-Observed Failure
-       │
-       ▼
-Classification
-       │
-       ▼
-Evidence
-       │
-       ▼
-Hypothesis
-       │
-       ▼
-Controlled Experiment
-       │
-       ▼
-Implementation Change
-       │
-       ▼
-Re-run Evaluation
-       │
-       ├── validated
-       └── still failing / inconclusive
+```bash
+ollama pull llama3.2:3b
+ollama pull nomic-embed-text
 ```
 
-The first registered controlled experiment is **EXP001 — Script-Based Language Detection**.
+Make sure Ollama is running.
 
-It addressed a language-routing failure where numeric content could incorrectly influence language detection.
+## Run locally
 
-The experiment is documented as a controlled case outcome rather than being presented as a full benchmark execution.
+Create and activate the virtual environment.
 
----
+Git Bash:
 
-# Observability
-
-Each persisted run can contain:
-
-- run ID
-- timestamp
-- session ID
-- status
-- application/model metadata
-- prompt version
-- retrieval configuration
-- generation configuration
-- stage metrics
-- total latency
-- token usage when available
-- errors
-
-Raw user input is **not stored by default**.
-
----
-
-# Production Hardening
-
-Implemented:
-
-- centralized configuration
-- environment-based secrets
-- readiness validation
-- request-size limits
-- session/message limits
-- generic client-facing errors
-- non-root Docker execution
-- configurable CORS
-- security response headers
-- Docker healthcheck
-- CI test execution
-- Python compilation check
-- Docker build in CI
-- dependency audit with `pip-audit`
-
-Deployment-level requirements that remain outside the demo repository include:
-
-- HTTPS/TLS termination
-- external secret management
-- authentication/authorization
-- edge rate limiting
-- centralized production logging
-- network policy
-- dependency/base-image update policy
-
----
-
-# Repository Structure
-
-```text
-.
-├── agents/                  # Conversation orchestration
-├── config/                  # Centralized configuration
-├── evaluation/              # Evaluation engines and benchmarks
-├── experiments/             # Controlled experiment registry
-├── memory/                  # Local semantic memory
-├── observability/           # Run and failure evidence
-├── product/                 # Product-facing projections
-├── prompts/                 # Prompt resources
-├── static/                  # Browser application
-├── tests/                   # Application tests
-├── voice/                   # Text-to-speech
-├── .github/workflows/       # CI/CD
-├── Dockerfile
-├── app.py
-├── interview_manager.py
-├── requirements.txt
-└── .env.example
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
 ```
 
----
+Install dependencies:
 
-# API Surface
+```bash
+pip install -r requirements.txt
+```
+
+Create the environment file:
+
+```bash
+cp .env.example .env
+```
+
+Default configuration:
+
+```text
+OLLAMA_BASE_URL=http://localhost:11434
+LLM_MODEL=llama3.2:3b
+EMBED_MODEL=nomic-embed-text
+MEMORY_STORE_PATH=data/memory.json
+PORT=8000
+```
+
+Start the application:
+
+```bash
+python app.py
+```
+
+Open:
+
+`http://localhost:8000`
+
+## Product surfaces
 
 | Endpoint | Purpose |
 |---|---|
@@ -362,160 +136,142 @@ Deployment-level requirements that remain outside the demo repository include:
 | `GET /health` | Process health |
 | `GET /ready` | Local AI readiness |
 | `POST /chat` | Conversation |
-| `GET /session/<id>/state` | Session state |
+| `GET /session/<id>/state` | Session progress |
 | `GET /session/<id>/memory` | Memory inspection |
 | `GET /evaluation` | Evaluation Lab |
 | `GET /failures` | Failure Observatory |
 | `GET /failures/<id>` | Failure detail |
 | `GET /operations` | Operations snapshot |
 
----
+## Evaluation
 
-# Running Locally
+The repository distinguishes evidence types instead of inventing scores.
 
-## Requirements
+### Deterministic
 
-- Python 3.11
-- Ollama installed and running
-- the selected local Ollama models
+Tests:
 
-## Ollama models
-
-Install the local models used by the default configuration:
-
-```bash
-ollama pull llama3.2:3b
-ollama pull nomic-embed-text
-```
-
-Make sure Ollama is running before starting the Flask application.
-
-## Setup
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-```
-
-Configure:
-
-```text
-OLLAMA_BASE_URL=http://localhost:11434
-LLM_MODEL=llama3.2:3b
-EMBED_MODEL=nomic-embed-text
-MEMORY_STORE_PATH=data/memory.json
-```
+- state transitions
+- answer validation
+- language routing
+- session isolation
+- intake completion
 
 Run:
 
 ```bash
-python app.py
+python evaluation/run_baseline.py
 ```
 
-Default port:
+### Retrieval
 
-```text
-8000
+Metrics:
+
+- Precision@K
+- Recall@K
+- MRR
+
+The live retrieval evaluator uses the local Ollama embedding model and local memory store.
+
+### Generation
+
+Generation quality requires actual model outputs and a declared evaluation method.
+
+### Voice
+
+Voice evaluation requires actual TTS execution.
+
+Unavailable evidence is represented as `blocked` or `not_measured`.
+
+## Failure → Experiment → Validation
+
+Failures are treated as engineering evidence.
+
+A failure record can capture:
+
+- what should have happened
+- what actually happened
+- evidence
+- severity
+- root-cause hypothesis
+- linked experiment
+- lifecycle status
+
+Experiments then provide:
+
+`Failure → Hypothesis → Intervention → Measurement → Decision`
+
+The first registered experiment, EXP001, documents the correction of a language-routing problem where numeric content could incorrectly influence language detection.
+
+## Repository structure
+
 ```
-
-## Docker
-
-```bash
-docker build -t conversational-ai-system .
-docker run --env-file .env -p 8000:8000 conversational-ai-system
+agents/              Conversation orchestration
+config/              Configuration and validation
+evaluation/          Evaluation engines and benchmarks
+experiments/         Controlled experiment registry
+memory/              Local semantic memory
+observability/       Run and failure evidence
+product/             Product-facing projections
+providers/           Ollama integration
+static/              Browser client
+tests/               Automated tests
+voice/               Text-to-speech
+docs/                Architecture and engineering documentation
 ```
 
 ## Tests
 
 ```bash
 python -m unittest discover -s tests -v
-```
-
-CI additionally runs:
-
-```bash
 pytest -q
 python -m compileall -q .
-pip-audit
-docker build
 ```
 
----
+CI also builds the Docker image and runs `pip-audit`.
 
-# Project Roadmap
+## Docker
 
-The system was developed in twelve controlled phases:
+The application container does not contain Ollama. Ollama remains a separate local service.
 
-| Phase | Result |
-|---:|---|
-| 1 | Complete Observability |
-| 2 | Complete Evaluation |
-| 3 | Actual Failure Observatory |
-| 4 | Controlled Experiments |
-| 5 | Production Hardening |
-| 6 | Session State Product Layer |
-| 7 | Memory Inspector |
-| 8 | Evaluation Lab |
-| 9 | Failure Observatory UI |
-| 10 | Operations UI |
-| 11 | Deployment / CI/CD / Security |
-| 12 | Portfolio Packaging & Demo |
-
-All twelve phases are structurally complete; full local runtime verification is the next step.
-
----
-
-# Evidence and Verification Boundary
-
-This repository distinguishes **implemented artifacts** from **runtime-verified measurements**.
-
-The application is designed to run locally without paid AI provider credentials. External network access is only required by optional voice generation through gTTS.
-
-Therefore this project does **not** fabricate:
-
-- fresh benchmark scores
-- Ollama-dependent retrieval scores
-- generation-quality scores
-- live latency measurements
-- successful CI execution claims
-
-Where evidence is unavailable, the system reports `blocked` or `not_measured`.
-
-That distinction is part of the engineering design.
-
----
-
-# Portfolio Positioning
-
-This project demonstrates a broader AI-engineering workflow:
+On Docker Desktop, the application can reach a host Ollama instance through the appropriate host gateway address, for example:
 
 ```text
-Build
-  ↓
-Instrument
-  ↓
-Evaluate
-  ↓
-Observe failures
-  ↓
-Experiment
-  ↓
-Harden
-  ↓
-Operate
-  ↓
-Package
+OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 
-The main portfolio value is therefore not simply **"I built a chatbot."**
+The exact host networking configuration is environment-dependent.
 
-It is:
+## Security baseline
 
-> **I built a stateful conversational AI system and an engineering framework around it for evaluation, observability, failure analysis, experimentation, and operational monitoring.**
+Implemented:
 
----
+- request-size limits
+- session/message limits
+- generic client errors
+- configurable CORS
+- security response headers
+- non-root Docker user
+- environment-based configuration
+- raw-input redaction by default
+- read-only CI permissions
+- dependency auditing
+
+A public deployment would additionally require authentication, authorization, TLS, rate limiting, network controls, and production secret/logging management.
+
+## Verification boundary
+
+The repository has been structurally refactored for the local-first stack, but the complete application has **not yet been runtime-verified in this environment**.
+
+Do not interpret repository structure as proof of live model, retrieval, voice, Docker, or CI execution.
+
+## Portfolio positioning
+
+The project demonstrates:
+
+> **How to build, inspect, evaluate, debug, and improve a stateful conversational AI system.**
+
+It is intentionally more than a chatbot demo.
 
 ## Disclaimer
 
@@ -523,4 +279,4 @@ This is a technical conversational-AI demonstration. It is not a medical diagnos
 
 ## License
 
-MIT license is currently specified.
+MIT.
