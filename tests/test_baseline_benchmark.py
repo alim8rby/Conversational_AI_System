@@ -39,9 +39,7 @@ class TestBaselineBenchmark(unittest.TestCase):
     def test_b004_arabic_detection(self):
         self.assertEqual(detect_language("أنا عندي ثلاثين سنة"), "ar")
 
-    @unittest.expectedFailure
     def test_b005_english_with_numbers(self):
-        # Known baseline defect: digits force Arabic classification.
         self.assertEqual(detect_language("I am 30 and work in finance."), "en")
 
     def test_b006_clarification_state_does_not_advance(self):
