@@ -1,7 +1,7 @@
 """Deterministic V1 benchmark runner.
 
-Runs only tests that do not require Together AI or Pinecone.
-External-provider cases remain explicitly excluded.
+Runs cases that do not require Ollama. Model-dependent cases are explicit
+integration tests rather than hidden exclusions.
 """
 
 from __future__ import annotations
@@ -99,7 +99,7 @@ def main():
         "benchmark_version": benchmark["benchmark_version"],
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "python_version": platform.python_version(),
-        "implementation_note": "Deterministic cases only; B003 and B006 require provider-dependent relevance/classification behavior.",
+        "implementation_note": "Deterministic cases only; B003 and B006 require the local Ollama runtime.",
         "results": results,
         "metrics": metrics,
     }
