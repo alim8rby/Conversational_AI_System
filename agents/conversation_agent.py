@@ -28,6 +28,7 @@ APP_VERSION = os.getenv("APP_VERSION", os.getenv("GIT_COMMIT", "unknown"))
 PROMPT_VERSION = os.getenv("PROMPT_VERSION", "v1")
 RETRIEVAL_K = 3
 KNOWLEDGE_CONTEXT_MAX_CHARS = 4000
+TOOL_TIMEOUT_SECONDS = float(os.getenv("TOOL_TIMEOUT_SECONDS", "5.0"))
 GENERATION_TEMPERATURE = 0.7
 GENERATION_MAX_TOKENS = 250
 
@@ -74,7 +75,7 @@ class ConversationAgent:
         self.knowledge = KnowledgeBase(embed_model=embed_model)
         self.context_builder = KnowledgeContextBuilder()
         self.workflow_manager = WorkflowManager(self.domain, self.client)
-        self.tools = ToolManager()
+        self.tools = ToolManager(default_timeout_seconds=TOOL_TIMEOUT_SECONDS)
         self.tools.register(
             "product_search",
             product_search,
@@ -298,6 +299,7 @@ class ConversationAgent:
             tool_executions = self.tools.execute_required(
                 required_tools,
                 user_message,
+                timeout_seconds=TOOL_TIMEOUT_SECONDS,
             )
             run["metrics"]["tool"] = {
                 "required_tools": required_tools,
@@ -308,6 +310,10 @@ class ConversationAgent:
                 ),
                 "requires_input_count": sum(
                     execution["status"] == "requires_input"
+                    for execution in tool_executions
+                ),
+                "timeout_count": sum(
+                    execution.get("error", {}).get("type") == "tool_timeout"
                     for execution in tool_executions
                 ),
             }
