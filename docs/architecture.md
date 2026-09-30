@@ -20,7 +20,7 @@ Evaluation / Operations
 
 ## Components
 
-- **Flask API** — request validation and product endpoints.
+- **Flask API** — request validation, explicit session start, and product endpoints.
 - **ConversationAgent** — coordinates dialogue, classification, retrieval, generation, and evidence.
 - **InterviewManager** — deterministic structured session state.
 - **OllamaClient** — local model interface for chat and embeddings.
@@ -29,6 +29,12 @@ Evaluation / Operations
 - **Observability** — persisted run and failure evidence.
 - **Evaluation** — deterministic, retrieval, generation, voice, and integrated evaluation contracts.
 - **Product projections** — Session State, Memory Inspector, Evaluation Lab, Failure Observatory, and Operations.
+
+## Conversation lifecycle
+
+Session initialization is explicit at the API boundary. `POST /session/<id>/start` initializes the deterministic intake state and stores the first awaited field. Subsequent `POST /chat` calls consume the user's answer for that exact awaited field before advancing to the next field.
+
+This prevents the first user message from being discarded or accidentally treated as an answer to a later field.
 
 ## Design principle
 
