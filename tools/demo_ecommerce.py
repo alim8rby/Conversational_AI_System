@@ -6,6 +6,7 @@ boundary for the architecture without pretending to access a live store.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List
 
 
@@ -48,6 +49,12 @@ ORDERS = {
         "estimated_delivery": None,
     },
 }
+
+
+def extract_order_id(text: str) -> str | None:
+    """Extract a demo order ID from natural-language user input."""
+    match = re.search(r"\bDEMO-\d{4}\b", text.upper())
+    return match.group(0) if match else None
 
 
 def product_search(query: str) -> Dict[str, Any]:
