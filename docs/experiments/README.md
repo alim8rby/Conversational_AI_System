@@ -20,5 +20,8 @@ Observed failure → objective → hypothesis → baseline → intervention → 
 | ID | Experiment | Status | Motivation | Metric | Decision |
 |---|---|---|---|---|---|
 | EXP001 | Script-Based Language Detection | completed | B005 language-routing failure | language detection accuracy | keep |
+| EXP002 | Embedding-Based Intake Relevance | completed | Unreliable 3B binary relevance classification | controlled similarity separation | keep prototype threshold |
 
 EXP001 documents the known language-routing correction. It is a controlled case result, not a claim of a fresh full-system benchmark run.
+
+EXP002 documents the intake relevance redesign. Its 0.46 threshold is an initial empirical prototype boundary based on five relevant and five irrelevant controlled examples, not a production-calibrated classifier.
