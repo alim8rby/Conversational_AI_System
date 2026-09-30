@@ -1,57 +1,34 @@
 # Failure Observatory
 
-## Purpose
+The Failure Observatory converts mismatches between expected and actual behavior into structured engineering evidence.
 
-The Failure Observatory turns individual system failures into structured engineering evidence. A failure is an observed mismatch between expected and actual system behavior.
+## Categories
 
-## Failure taxonomy
+- **Dialogue** — incorrect state transitions, validation, or clarification.
+- **Retrieval** — missed or irrelevant memories.
+- **Generation** — unsupported or contextually incorrect responses.
+- **Voice** — synthesis or audio failures.
+- **Infrastructure** — application or local-model service failures.
 
-| Category | Examples | Evidence |
-|---|---|---|
-| dialogue | wrong state transition, invalid answer accepted | expected vs actual state |
-| retrieval | relevant memory missed, irrelevant memory ranked highly | relevant IDs vs ranked IDs |
-| generation | unsupported answer, poor response quality | response + evaluation |
-| voice | synthesis failure, missing audio | voice status + error |
-| infrastructure | provider timeout, API failure | exception + latency |
+## Record
 
-## Failure record contract
+Each failure can contain:
 
-Each recorded failure should contain:
-
-- failure_id
-- timestamp_utc
-- session_id when applicable
+- failure ID
+- timestamp
+- session ID
 - category
 - stage
 - severity
-- expected_behavior
-- actual_behavior
+- expected behavior
+- actual behavior
 - evidence
-- root_cause when known
-- experiment_id when investigated
-- status: open, investigating, resolved, or wont_fix
+- root cause when known
+- experiment ID when investigated
+- lifecycle status
 
-## Failure lifecycle
+## Lifecycle
 
-Observed failure → classify → capture evidence → form hypothesis → experiment → change → re-run benchmark → resolved or still failing.
+Observed → classify → evidence → hypothesis → experiment → change → re-evaluate.
 
-## Rule
-
-Every optimization should be traceable to a measured failure or a measurable product requirement. Do not create improvements without an evaluation target.
-
-
-## Implemented evidence layer
-
-The observability package now provides:
-
-- `FailureStore` for validated persisted failure records
-- filtering by category, stage, severity, and status
-- aggregation by category, stage, severity, and lifecycle status
-- conversion of run errors into structured failure records
-- run-level error aggregation
-
-The Failure Observatory is therefore an evidence layer, not merely a schema. UI and historical trend visualizations can consume this store without changing the underlying failure contract.
-
-## Failure hygiene
-
-Raw user input is not required to create a failure record. Evidence should prefer run IDs, stage metrics, exception classes/messages, and benchmark results. Sensitive conversational content should remain redacted unless explicitly required in a controlled debugging environment.
+Raw conversational content is not required for a failure record.
