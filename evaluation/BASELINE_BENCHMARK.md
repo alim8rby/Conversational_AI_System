@@ -198,7 +198,7 @@ This will initially test the retrieval component independently from the LLM.
 - No production credentials in benchmark files.
 - No real patient data.
 - No dependence on network services for deterministic state tests.
-- External LLM/vector tests must use mocks or explicit integration-test markers.
+- Model-dependent tests must use mocks or explicit integration-test markers.
 - Every benchmark result records the benchmark version.
 - Baseline results must be preserved before optimization.
 
@@ -217,6 +217,6 @@ Each baseline run should capture:
 
 ## Success criterion
 
-The benchmark itself is successful when another developer can clone the repository, run the deterministic tests, and reproduce the same state-machine results without external AI services.
+The benchmark itself is successful when another developer can clone the repository, run the deterministic tests, and reproduce the same state-machine results without the local Ollama runtime.
 
-External-provider evaluation is a separate integration layer.
+Ollama-dependent evaluation is a separate integration layer.
