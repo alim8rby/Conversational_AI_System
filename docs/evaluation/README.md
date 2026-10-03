@@ -1,21 +1,84 @@
 # Evaluation
 
-Evaluation is a first-class component of the system.
+Evaluation is a first-class component with explicit evidence classes.
 
-## Layers
+## Deterministic dialogue
 
-1. **Deterministic dialogue** — state progression, validation, language routing, session isolation, and intake completion.
-2. **Retrieval** — Precision@K, Recall@K, and MRR against the local semantic memory.
-3. **Generation** — relevance, coherence, instruction adherence, groundedness, and unsupported-claim control.
-4. **Voice and operations** — TTS success, latency, generation latency, total latency, and token usage when Ollama reports it.
-5. **Integrated evaluation** — combines measured evidence without treating missing evidence as failure or success.
+No model runtime required:
 
-## Evidence rules
+- state progression
+- answer validation
+- language routing
+- session isolation
+- intake completion
 
-- Deterministic evaluation requires no model service.
-- Retrieval evaluation requires Ollama's embedding model and actual memory records.
-- Generation evaluation requires actual model responses plus a declared judge or human-review protocol.
-- Voice evaluation requires actual TTS execution.
-- Missing evidence is represented as `blocked` or `not_measured`, never zero.
+Run:
 
-No real patient data belongs in benchmark fixtures.
+\`\`\`bash
+python evaluation/run_baseline.py
+\`\`\`
+
+## Synthetic retrieval benchmark
+
+Versioned fixtures validate the metric implementation without pretending that fixture output is live retrieval.
+
+Metrics:
+
+- Precision@K
+- Recall@K
+- MRR
+
+Files:
+
+\`\`\`
+evaluation/retrieval_benchmark_v1.json
+evaluation/run_retrieval_eval.py
+\`\`\`
+
+## Live retrieval evaluation
+
+This executes the real local semantic-memory retrieval path using the configured Ollama embedding model:
+
+\`\`\`bash
+python -m evaluation.run_live_retrieval_eval \\
+  --session-id demo \\
+  --query "previous order" \\
+  --relevant-id demo-1
+\`\`\`
+
+This is runtime-dependent integration evidence.
+
+## Generation
+
+The repository defines generation cases and scoring criteria in:
+
+\`\`\`
+evaluation/generation_benchmark_v1.json
+\`\`\`
+
+No generation-quality score is claimed until actual model responses are reviewed with a declared judge or human-review protocol.
+
+## Voice and operations
+
+Runtime evidence can report:
+
+- TTS success
+- voice latency
+- total latency
+- generation latency
+- token usage when Ollama reports it
+- stage-level failures
+
+## Integrated Evaluation Lab
+
+The product surface combines available evidence while preserving status:
+
+- \`completed\`
+- \`not_measured\`
+- \`blocked\`
+
+The browser therefore shows repository evidence even when a live runtime dataset is unavailable.
+
+## Data policy
+
+Benchmark fixtures are synthetic. No real patient or customer data belongs in them.
