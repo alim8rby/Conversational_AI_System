@@ -211,6 +211,7 @@ class ConversationAgent:
                 run,
                 "dialogue",
                 f"Policy blocked request: {policy_decision.policy}",
+                expected_behavior="Blocked requests are rejected without downstream execution.",
             )
             finish_run(run)
             self.last_turn_metrics = run["metrics"]["policy"]
@@ -293,7 +294,12 @@ class ConversationAgent:
                     (time.perf_counter() - workflow_started) * 1000, 2
                 ),
             }
-            record_error(run, "dialogue", "Workflow routing failed")
+            record_error(
+                run,
+                "dialogue",
+                "Workflow routing failed",
+                expected_behavior="A supported domain workflow is selected for the request.",
+            )
             finish_run(run, "failed")
             self.last_turn_metrics = run["metrics"]["workflow"]
             return "Sorry, I could not determine how to handle that request. Please try again."
@@ -453,7 +459,12 @@ class ConversationAgent:
                 "generation_latency_ms": latency,
                 "generation_error": True,
             }
-            record_error(run, "generation", "LLM generation failed")
+            record_error(
+                run,
+                "generation",
+                "LLM generation failed",
+                expected_behavior="LLM generation returns a usable assistant response.",
+            )
             finish_run(run, "failed")
             self.last_turn_metrics = run["metrics"]["generation"]
             return "Sorry, something went wrong. Please try again."
