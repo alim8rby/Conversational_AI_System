@@ -42,9 +42,9 @@ The current reference domain is `demo_ecommerce`. It exists to exercise the engi
 
 Session initialization is explicit at the API boundary:
 
-`POST /session/<id>/start` initializes the session. Subsequent `POST /chat` calls process conversation turns.
+`POST /session/<id>/start` initializes the session and persists the selected response language. Subsequent `POST /chat` calls process conversation turns.
 
-For domains with structured intake enabled, each answer is classified before the intake state advances. For the current demo e-commerce domain, intake is disabled, so a started session can immediately enter workflow routing.
+The reference `demo_ecommerce` domain has structured intake disabled, so the portfolio demo starts directly in workflow routing. The repository still retains the optional intake engine for isolated regression coverage through `domains/test_intake`.
 
 ## Request lifecycle
 
