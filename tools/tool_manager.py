@@ -106,6 +106,19 @@ class ToolManager:
         """Execute one tool and convert failures into structured results."""
         started = perf_counter()
 
+        timeout = self.default_timeout_seconds if timeout_seconds is None else timeout_seconds
+        if timeout <= 0:
+            return {
+                "tool_id": tool_id,
+                "status": "failed",
+                "inputs": {},
+                "error": {
+                    "type": "invalid_timeout",
+                    "message": "timeout_seconds must be greater than zero.",
+                },
+                "latency_ms": round((perf_counter() - started) * 1000, 2),
+            }
+
         try:
             inputs = self.prepare_inputs(tool_id, user_message)
         except Exception as exc:
@@ -116,19 +129,6 @@ class ToolManager:
                 "error": {
                     "type": "input_extraction_error",
                     "message": str(exc),
-                },
-                "latency_ms": round((perf_counter() - started) * 1000, 2),
-            }
-
-        timeout = self.default_timeout_seconds if timeout_seconds is None else timeout_seconds
-        if timeout <= 0:
-            return {
-                "tool_id": tool_id,
-                "status": "failed",
-                "inputs": inputs,
-                "error": {
-                    "type": "invalid_timeout",
-                    "message": "timeout_seconds must be greater than zero.",
                 },
                 "latency_ms": round((perf_counter() - started) * 1000, 2),
             }
