@@ -51,10 +51,12 @@ ORDERS = {
 }
 
 
-def extract_order_id(text: str) -> str | None:
+def extract_order_id(text: str) -> Dict[str, Any]:
     """Extract a demo order ID from natural-language user input."""
     match = re.search(r"\bDEMO-\d{4}\b", text.upper())
-    return match.group(0) if match else None
+    if not match:
+        return {}
+    return {"order_id": match.group(0)}
 
 
 def product_search(query: str) -> Dict[str, Any]:
