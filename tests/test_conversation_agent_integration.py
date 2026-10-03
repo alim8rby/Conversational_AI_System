@@ -47,6 +47,19 @@ class TestConversationAgentIntegration(unittest.TestCase):
 
         return agent, client, workflow, tools, memory, knowledge
 
+    def test_started_session_persists_selected_language(self):
+        agent, client, workflow, tools, memory, knowledge = self._build_agent(
+            "مرحباً بك."
+        )
+
+        agent.start_session("arabic-session", "ar")
+        answer = agent.ask("arabic-session", "What is the price of TrailRunner X1?")
+
+        self.assertEqual(answer, "مرحباً بك.")
+        self.assertEqual(agent.session_languages["arabic-session"], "ar")
+        system_message = client.chat.call_args.kwargs["messages"][0]["content"]
+        self.assertIn("Respond in Arabic.", system_message)
+
     def test_request_flows_through_workflow_tool_retrieval_generation_and_memory(self):
         agent, client, workflow, tools, memory, knowledge = self._build_agent(
             "Your order ORD-123 has shipped."
