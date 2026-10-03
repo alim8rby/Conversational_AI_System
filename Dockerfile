@@ -28,4 +28,4 @@ RUN useradd --create-home --shell /usr/sbin/nologin appuser \
 USER appuser
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "--timeout", "120", "app:app"]
