@@ -35,7 +35,18 @@ class PolicyEngine:
         self._rules = [
             (
                 "safeguard_bypass",
-                ("ignore previous instructions", "bypass policy", "disable safeguards"),
+                (
+                    "ignore previous instructions",
+                    "ignore your safeguards",
+                    "ignore system safeguards",
+                    "bypass policy",
+                    "bypass safeguards",
+                    "disable safeguards",
+                    "reveal your system prompt",
+                    "show me your system prompt",
+                    "reveal the system prompt",
+                    "show me the system prompt",
+                ),
                 "The request attempts to bypass system safeguards.",
             ),
             (
