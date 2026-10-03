@@ -1,26 +1,18 @@
-"""Local retrieval evaluation.
-
-Runs the retrieval evaluator against the local MemoryManager.
-Requires Ollama to be running with the configured embedding model.
-"""
+"""Run a live retrieval evaluation against the local semantic memory."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
-import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-
-from agents.conversation_agent import EMBED_MODEL, MEMORY_STORE_PATH
+from config.settings import load_settings
+from evaluation.run_retrieval_eval import precision_at_k, recall_at_k, reciprocal_rank
 from memory.memory_manager import MemoryManager
-from run_retrieval_eval import precision_at_k, recall_at_k, reciprocal_rank
 
 
-def evaluate_retriever(manager, session_id: str, query: str, relevant_ids: list[str], k: int = 3) -> dict:
+def evaluate_retriever(manager: MemoryManager, session_id: str, query: str, relevant_ids: list[str], k: int = 3) -> dict:
+    if k <= 0:
+        raise ValueError("k must be greater than zero")
     results = manager.retrieve(session_id, query, k=k)
     retrieved_ids = [item["memory_id"] for item in results]
     relevant = set(relevant_ids)
@@ -35,29 +27,22 @@ def evaluate_retriever(manager, session_id: str, query: str, relevant_ids: list[
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Evaluate local semantic retrieval.")
     parser.add_argument("--session-id", required=True)
     parser.add_argument("--query", required=True)
-    parser.add_argument("--relevant-id", action="append", required=True)
+    parser.add_argument("--relevant-id", action="append", required=True, help="Repeat for multiple relevant IDs.")
     parser.add_argument("--k", type=int, default=3)
     args = parser.parse_args()
 
-    if not os.getenv("OLLAMA_BASE_URL"):
-        raise RuntimeError("OLLAMA_BASE_URL is required for live retrieval evaluation.")
+    settings = load_settings(require_runtime=True)
+    manager = MemoryManager(embed_model=settings.embed_model, store_path=settings.memory_store_path)
+    result = evaluate_retriever(manager, args.session_id, args.query, args.relevant_id, args.k)
 
-    manager = MemoryManager(embed_model=EMBED_MODEL, store_path=MEMORY_STORE_PATH)
-    result = evaluate_retriever(
-        manager,
-        args.session_id,
-        args.query,
-        args.relevant_id,
-        args.k,
-    )
     print(json.dumps({
         "evaluation_type": "local-runtime",
         "session_id": args.session_id,
-        "embedding_model": EMBED_MODEL,
-        "memory_store": MEMORY_STORE_PATH,
+        "embedding_model": settings.embed_model,
+        "memory_store": settings.memory_store_path,
         "k": args.k,
         "result": result,
     }, indent=2))
