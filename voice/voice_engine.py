@@ -1,32 +1,33 @@
-# voice/voice_engine.py
+"""Text-to-speech adapter with explicit session-language control."""
 
-import os
-import re
+from __future__ import annotations
+
+from pathlib import Path
+
 from gtts import gTTS
+
+
+SUPPORTED_LANGUAGES = {"en", "ar"}
+
 
 class VoiceEngine:
     def __init__(self, default_lang: str = "en"):
+        if default_lang not in SUPPORTED_LANGUAGES:
+            raise ValueError("default_lang must be 'en' or 'ar'")
         self.default_lang = default_lang
 
-    def _detect_lang(self, text: str) -> str:
-        """
-        If the text contains Arabic letters → 'ar'.
-        Else if it contains digits (Franco-Arab) → 'ar' (so romanized Arabic still uses Arabic TTS).
-        Otherwise → use the default (usually 'en').
-        """
-        if re.search(r'[\u0600-\u06FF]', text):
-            return 'ar'
-        if re.search(r'\d', text):
-            return 'ar'
-        return self.default_lang
+    def text_to_speech(
+        self,
+        text: str,
+        filename: str,
+        language: str | None = None,
+    ) -> str:
+        """Generate an MP3 using the explicit session language."""
+        lang = language or self.default_lang
+        if lang not in SUPPORTED_LANGUAGES:
+            raise ValueError("language must be 'en' or 'ar'")
 
-    def text_to_speech(self, text: str, filename: str) -> str:
-        """
-        Generate an MP3 of `text` in the detected language,
-        save to `filename`, and return the path.
-        """
-        lang = self._detect_lang(text)
-        tts = gTTS(text=text, lang=lang)
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        tts.save(filename)
-        return filename
+        path = Path(filename)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        gTTS(text=text, lang=lang).save(path)
+        return str(path)
