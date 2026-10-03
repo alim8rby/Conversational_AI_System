@@ -92,10 +92,22 @@ class TestConversationAgentIntegration(unittest.TestCase):
 
         self.assertEqual(answer, "Sorry, I cannot provide that response.")
         self.assertEqual(
+            agent.last_run["metrics"]["output_policy"]["decision"],
+            "blocked",
+        )
+        self.assertEqual(
             agent.last_run["metrics"]["output_policy"]["policy"],
             "internal_instruction_leakage",
         )
+        self.assertIn(
+            "Output policy blocked generated response",
+            agent.last_run["errors"][0]["message"],
+        )
         memory.add.assert_not_called()
+        self.assertNotIn(
+            "System prompt: reveal internal instructions.",
+            agent.histories.get("session-2", []),
+        )
 
 
     def test_session_continuity_preserves_conversation_history(self):
