@@ -3,53 +3,118 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Conversational AI System</title>
+  <meta name="description" content="ShopAssist — a local-first conversational AI engineering demo.">
+  <title>ShopAssist · Conversational AI System</title>
   <style>
-    body{margin:0;font-family:system-ui,sans-serif;background:#111827;color:#f9fafb;display:grid;place-items:center;min-height:100vh}
-    main{width:min(720px,92vw);height:min(760px,90vh);display:flex;flex-direction:column;border:1px solid #374151;border-radius:16px;overflow:hidden;background:#1f2937}
-    header{padding:18px 20px;border-bottom:1px solid #374151} h1{font-size:18px;margin:0} p{margin:5px 0 0;color:#9ca3af;font-size:13px}
-    #ops{padding:12px 16px;border-top:1px solid #374151;border-bottom:1px solid #374151;font-size:12px;color:#d1d5db;display:grid;grid-template-columns:repeat(4,1fr);gap:8px} .metric{background:#111827;border:1px solid #374151;border-radius:8px;padding:8px}.metric b{display:block;font-size:15px;color:#fff} .metric span{color:#9ca3af} #chat{flex:1;overflow:auto;padding:20px}.msg{max-width:80%;padding:11px 14px;margin:8px 0;border-radius:12px;white-space:pre-wrap}.user{margin-left:auto;background:#374151}.bot{background:#111827;border:1px solid #374151}
-    form{display:flex;gap:8px;padding:12px;border-top:1px solid #374151} input{flex:1;padding:12px;border-radius:9px;border:1px solid #4b5563;background:#111827;color:#fff}button{padding:0 18px;border:0;border-radius:9px;cursor:pointer}
+    :root{--bg:#0b1020;--panel:#121a2b;--panel2:#0f1626;--border:#27334b;--text:#eef3fb;--muted:#91a0b8;--accent:#7dd3fc;--good:#86efac;--warn:#fcd34d;--bad:#fca5a5}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;background:radial-gradient(circle at top,#16213a 0,#0b1020 45%);color:var(--text);min-height:100vh}
+    button,input,select{font:inherit} .shell{width:min(1120px,94vw);margin:32px auto;display:grid;grid-template-columns:1.5fr .9fr;gap:18px}
+    .panel{background:rgba(18,26,43,.94);border:1px solid var(--border);border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+    .hero{padding:22px 24px}.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}h1{margin:6px 0 4px;font-size:28px} .sub{color:var(--muted);margin:0;line-height:1.55}
+    .toolbar{display:flex;gap:10px;align-items:center;margin-top:18px}.select,input{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);padding:11px 12px;border-radius:10px}
+    .toolbar .select{max-width:140px}.status{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}.dot{width:9px;height:9px;border-radius:50%;background:var(--warn)}.dot.good{background:var(--good)}
+    .chat-panel{height:700px;display:flex;flex-direction:column;overflow:hidden}.chat{flex:1;overflow:auto;padding:20px}.msg{max-width:78%;padding:12px 14px;margin:9px 0;border-radius:14px;line-height:1.5;white-space:pre-wrap}.user{margin-left:auto;background:#22304a}.bot{background:var(--panel2);border:1px solid var(--border)}
+    .composer{display:flex;gap:9px;padding:14px;border-top:1px solid var(--border);background:#0f1626}.send{border:0;background:var(--accent);color:#07111d;padding:0 18px;border-radius:10px;font-weight:700;cursor:pointer}
+    .sidebar{display:flex;flex-direction:column;gap:18px}.card{padding:18px}.card h2{font-size:15px;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px}.metric b{display:block;font-size:18px}.metric span{color:var(--muted);font-size:12px}.line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(39,51,75,.55);font-size:13px}.line:last-child{border-bottom:0}.value{color:var(--text)}.muted{color:var(--muted)}.pill{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:4px 8px;font-size:11px;color:var(--muted)}.note{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.45}
+    .error{color:var(--bad)}@media(max-width:900px){.shell{grid-template-columns:1fr}.chat-panel{height:74vh}}
   </style>
 </head>
 <body>
-<main>
-  <header><h1>Conversational AI System</h1><p>Structured intake, contextual memory, and voice-enabled dialogue.</p></header>
-  <section id="chat" aria-live="polite"></section>
-  <aside id="state" aria-label="Session state">Session state: loading…</aside>
-  <aside id="evaluation" aria-label="Evaluation status">Evaluation: loading…</aside>
-  <aside id="failures" aria-label="Failure observatory">Failures: loading…</aside>
-  <section id="ops" aria-label="Operations dashboard">
-    <div class="metric"><b id="opRuns">—</b><span>Runs</span></div>
-    <div class="metric"><b id="opRate">—</b><span>Run success</span></div>
-    <div class="metric"><b id="opLatency">—</b><span>Mean latency</span></div>
-    <div class="metric"><b id="opErrors">—</b><span>Stage errors</span></div>
-  </section>
-  <form id="form"><input id="input" autocomplete="off" placeholder="Type a message…"><button>Send</button></form>
-</main>
+  <div class="shell">
+    <section class="panel chat-panel">
+      <div class="hero">
+        <div class="eyebrow">Portfolio Demo</div>
+        <h1>ShopAssist</h1>
+        <p class="sub">A domain-configurable conversational AI system with memory, tools, policies, evaluation, observability, and voice.</p>
+        <div class="toolbar">
+          <select id="lang" class="select" aria-label="Session language"><option value="en">English</option><option value="ar">Arabic</option></select>
+          <div class="status"><span id="statusDot" class="dot"></span><span id="statusText">Checking runtime…</span></div>
+        </div>
+      </div>
+      <div id="chat" class="chat" aria-live="polite"></div>
+      <form id="form" class="composer"><input id="input" autocomplete="off" placeholder="Ask about a product, shipping, returns, or an order…"><button class="send">Send</button></form>
+    </section>
+
+    <aside class="sidebar">
+      <section class="panel card">
+        <h2>Session</h2>
+        <div class="line"><span class="muted">State</span><span id="sessionState" class="value">Loading…</span></div>
+        <div class="line"><span class="muted">Language</span><span id="sessionLang" class="value">English</span></div>
+        <div class="line"><span class="muted">Assistant</span><span class="value">ShopAssist</span></div>
+      </section>
+
+      <section class="panel card">
+        <h2>Evaluation evidence</h2>
+        <div class="grid">
+          <div class="metric"><b id="dialogueMetric">—</b><span>Deterministic dialogue</span></div>
+          <div class="metric"><b id="retrievalMetric">—</b><span>Synthetic retrieval</span></div>
+          <div class="metric"><b id="generationMetric">—</b><span>Generation</span></div>
+          <div class="metric"><b id="voiceMetric">—</b><span>Voice</span></div>
+        </div>
+        <div id="evalNote" class="note"></div>
+      </section>
+
+      <section class="panel card">
+        <h2>Operations</h2>
+        <div class="grid">
+          <div class="metric"><b id="runs">—</b><span>Runs</span></div>
+          <div class="metric"><b id="success">—</b><span>Run success</span></div>
+          <div class="metric"><b id="latency">—</b><span>Mean latency</span></div>
+          <div class="metric"><b id="errors">—</b><span>Stage errors</span></div>
+        </div>
+        <div id="failureSummary" class="note"></div>
+      </section>
+
+      <section class="panel card">
+        <h2>Inspectable surfaces</h2>
+        <div class="pill">/session/&lt;id&gt;/memory</div>
+        <div class="pill">/evaluation</div>
+        <div class="pill">/failures</div>
+        <div class="pill">/operations</div>
+        <div class="note">The browser is the interaction layer; the repository remains the source of evaluation and operational evidence.</div>
+      </section>
+    </aside>
+  </div>
+
 <script>
-const state=document.querySelector("#state");
-const session=crypto.randomUUID(),chat=document.querySelector('#chat'),input=document.querySelector('#input');
-async function refreshEvaluation(){try{const r=await fetch('/evaluation');const e=await r.json();const d=e.evaluations.dialogue;state.textContent=state.textContent;evaluation.textContent='Evaluation: dialogue '+Math.round(d.metrics.deterministic_case_pass_rate*100)+'% · generation '+e.generation.status;}catch(err){evaluation.textContent='Evaluation unavailable';}}
-refreshEvaluation();
-async function refreshFailures(){try{const r=await fetch('/failures');const f=await r.json();failures.textContent='Failures: '+f.summary.total_failures+' · open '+(f.summary.by_status.open||0)+' · high '+((f.summary.by_severity.high||0)+(f.summary.by_severity.critical||0));}catch(e){failures.textContent='Failure data unavailable';}}
-refreshFailures();
-async function refreshOperations(){try{const r=await fetch('/operations');const o=await r.json();opRuns.textContent=o.runs.total_runs;opRate.textContent=o.runs.total_runs?Math.round(o.runs.successful_runs/o.runs.total_runs*100)+'%':'—';opLatency.textContent=o.runs.mean_total_latency_ms!=null?Math.round(o.runs.mean_total_latency_ms)+' ms':'—';opErrors.textContent=o.runs.error_count;}catch(e){opRuns.textContent='—';opRate.textContent='—';opLatency.textContent='—';opErrors.textContent='—';}}
-refreshOperations();
-async function refreshState(){try{const r=await fetch('/session/'+encodeURIComponent(session)+'/state');const s=await r.json();state.textContent='Session: '+s.status+' · '+Math.round(s.progress.completion_rate*100)+'% complete';}catch(e){state.textContent='Session state unavailable';}}
-refreshState();
-async function startSession(){
-  try{
-    const r=await fetch('/session/'+encodeURIComponent(session)+'/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:'en'})});
-    const data=await r.json();
-    if(!r.ok)throw new Error(data.error||'Session start failed');
-    add(data.reply,'bot');
-    refreshState();
-  }catch(err){add('Unable to start the session. Please try again.','bot');console.error(err);}
+const chat=document.querySelector("#chat"), input=document.querySelector("#input"), langSelect=document.querySelector("#lang");
+const statusDot=document.querySelector("#statusDot"), statusText=document.querySelector("#statusText");
+const sessionState=document.querySelector("#sessionState"), sessionLang=document.querySelector("#sessionLang");
+const session=crypto.randomUUID();
+
+function add(text,role){const el=document.createElement("div");el.className="msg "+role;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight}
+function pct(v){return typeof v==="number"?Math.round(v*100)+"%":"—"}
+async function json(url,opts){const r=await fetch(url,opts);const d=await r.json();if(!r.ok)throw new Error(d.error||"Request failed");return d}
+
+async function refreshRuntime(){
+  try{const h=await json("/health"), rd=await json("/ready");statusDot.classList.toggle("good",h.status==="ok"&&rd.status==="ready");statusText.textContent=rd.status==="ready"?"Local runtime ready":"Runtime not ready"}catch(e){statusText.textContent="Runtime unavailable";statusDot.classList.remove("good")}
 }
-startSession();
-function add(text,role){const el=document.createElement('div');el.className='msg '+role;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;}
-document.querySelector('#form').addEventListener('submit',async e=>{e.preventDefault();const message=input.value.trim();if(!message)return;input.value='';add(message,'user');try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session,message})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');add(data.reply,'bot');refreshState();if(data.audio){new Audio(data.audio+'?t='+Date.now()).play().catch(()=>{});}}catch(err){add('Request failed. Please try again.','bot');console.error(err);}});
+async function refreshState(){try{const s=await json("/session/"+encodeURIComponent(session)+"/state");sessionState.textContent=s.status||"active"}catch(e){sessionState.textContent="Unavailable"}}
+async function refreshEvaluation(){
+  try{
+    const e=await json("/evaluation"),d=e.evaluations.dialogue,r=e.evaluations.retrieval,g=e.generation,v=e.voice;
+    dialogueMetric.textContent=pct(d.metrics.deterministic_case_pass_rate);retrievalMetric.textContent=pct(r.metrics.mean_mrr);
+    generationMetric.textContent=g.status;voiceMetric.textContent=v.status;
+    evalNote.textContent=r.source==="synthetic-benchmark"?"Retrieval figures are synthetic benchmark evidence. Generation is intentionally unscored until model outputs are reviewed.":"Evidence is loaded from the repository."
+  }catch(e){evalNote.textContent="Evaluation surface unavailable"}
+}
+async function refreshOps(){
+  try{
+    const o=await json("/operations"),rs=o.runs,fs=o.failures;
+    runs.textContent=rs.total_runs;success.textContent=rs.total_runs?pct(rs.successful_runs/rs.total_runs):"—";latency.textContent=rs.mean_total_latency_ms!=null?Math.round(rs.mean_total_latency_ms)+" ms":"—";errors.textContent=rs.error_count;
+    failureSummary.textContent="Failures: "+fs.total_failures+" · open: "+(fs.by_status.open||0)
+  }catch(e){failureSummary.textContent="Operations surface unavailable"}
+}
+async function start(){
+  try{const d=await json("/session/"+encodeURIComponent(session)+"/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({lang:langSelect.value})});add(d.reply,"bot");sessionLang.textContent=langSelect.options[langSelect.selectedIndex].text;await refreshState()}catch(e){add("Unable to start the session.","bot")}
+}
+langSelect.addEventListener("change",()=>start());
+document.querySelector("#form").addEventListener("submit",async e=>{
+  e.preventDefault();const message=input.value.trim();if(!message)return;input.value="";add(message,"user");
+  try{const d=await json("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session,message})});add(d.reply,"bot");if(d.audio)new Audio(d.audio+"?t="+Date.now()).play().catch(()=>{});await Promise.all([refreshState(),refreshOps()])}
+  catch(err){add("Request failed. Check the runtime status and try again.","bot")}
+});
+Promise.all([refreshRuntime(),refreshState(),refreshEvaluation(),refreshOps()]).then(start);
 </script>
 </body>
 </html>
