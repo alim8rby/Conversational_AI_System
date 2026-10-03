@@ -1,4 +1,6 @@
-# Run-level observability helpers
+"""Run-level observability helpers."""
+
+from __future__ import annotations
 
 import json
 import os
@@ -7,7 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-RUNS_DIR = Path(__file__).resolve().parent / "runs"
+from observability.failure_from_run import failures_from_run
+
+RUNS_DIR = Path(
+    os.getenv(
+        "OBSERVABILITY_RUNS_DIR",
+        str(Path(__file__).resolve().parent / "runs"),
+    )
+)
 STORE_INPUT = os.getenv("OBSERVABILITY_STORE_INPUT", "false").lower() == "true"
 
 
@@ -37,11 +46,34 @@ def finish_run(run, status="success"):
     return run
 
 
-def record_error(run, stage, error):
-    run["errors"].append({"stage": stage, "error": str(error)})
+def record_error(
+    run,
+    stage,
+    error,
+    *,
+    severity="medium",
+    expected_behavior=None,
+    root_cause=None,
+    experiment_id=None,
+):
+    run["errors"].append(
+        {
+            "stage": stage,
+            "error": str(error),
+            "severity": severity,
+            "expected_behavior": expected_behavior,
+            "root_cause": root_cause,
+            "experiment_id": experiment_id,
+            "status": "open",
+        }
+    )
 
 
 def persist_run(run):
+    """Persist a run and project its errors into FailureStore."""
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     path = RUNS_DIR / f"{run['run_id']}.json"
     path.write_text(json.dumps(run, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    if run.get("errors"):
+        failures_from_run(run)
