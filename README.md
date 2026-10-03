@@ -314,9 +314,9 @@ A public deployment would additionally require authentication, authorization, TL
 
 The repository is standardized on Python 3.14.7 across local development, CI, and Docker.
 
-The project has been structurally refactored for the local-first stack, but the complete application has **not yet been runtime-verified locally**.
+The core application has now been **runtime-verified locally** through the Flask application with the local Ollama stack.
 
-Do not interpret repository structure as proof of live model, retrieval, voice, Docker, or CI execution.
+Verified runtime gates include session continuity, real `order_lookup` execution, input/output policy enforcement, controlled tool-failure handling, Arabic session-language persistence and classification regression, and semantic memory persistence/retrieval. These checks establish the demonstrated local path only; they do not establish production-scale generation quality, voice quality, Docker execution, CI execution, authentication, or public-deployment security.
 
 ## Portfolio positioning
 
