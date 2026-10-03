@@ -1,0 +1,16 @@
+{
+  "domain_id": "test_intake",
+  "name": "Runtime Intake Test",
+  "version": "1.0",
+  "description": "Isolated runtime domain for validating real LLM intake classification.",
+  "assistant": {
+    "name": "IntakeTest",
+    "purpose": "Collect structured information for runtime regression testing."
+  },
+  "workflows": [],
+  "tools": [],
+  "policies": [],
+  "intake": {
+    "enabled": true
+  }
+}
