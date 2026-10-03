@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from observability.run_store import RunStore
 from observability.failure_store import FailureStore
+from observability.run_store import RunStore
 from product.evaluation_lab import build_evaluation_lab
 
 
 def build_operations(store=None, failures=None):
     run_store = store or RunStore()
     failure_store = failures or FailureStore()
+
     run_summary = run_store.summary()
     stage_summary = run_store.stage_summary()
     failure_summary = failure_store.summary()
@@ -21,9 +22,9 @@ def build_operations(store=None, failures=None):
     return {
         "schema_version": "operations-v1",
         "system": {
-            "health": "unknown",
-            "readiness": "unknown",
-            "note": "Health/readiness are exposed by dedicated endpoints.",
+            "health": "see /health",
+            "readiness": "see /ready",
+            "note": "Live liveness/readiness are exposed by dedicated endpoints.",
         },
         "runs": {
             **run_summary,
@@ -34,6 +35,7 @@ def build_operations(store=None, failures=None):
         "evaluation": {
             "dialogue_status": evaluation["evaluations"]["dialogue"].get("status"),
             "retrieval_status": evaluation["evaluations"]["retrieval"].get("status"),
+            "retrieval_source": evaluation["evaluations"]["retrieval"].get("source"),
             "generation_status": evaluation["generation"].get("status"),
             "voice_status": evaluation["voice"].get("status"),
             "run_success_rate": metrics.get("run_success_rate"),
