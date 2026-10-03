@@ -66,6 +66,22 @@ class TestAnswerClassifier(unittest.TestCase):
             self.assertIsInstance(result["reason"], str)
             self.assertTrue(result["reason"])
 
+
+    def test_high_confidence_meta_bypasses_weak_local_llm(self):
+        client = FakeOllamaClient(
+            ['{"label":"unclear","reason":"Weak model classification."}']
+        )
+        classifier = AnswerClassifier(client)
+
+        result = classifier.classify(
+            "احكي لي قليلاً عن نفسك.",
+            "بجربك أشوفك هتفهم ولا لأ",
+            "ar",
+        )
+
+        self.assertEqual(result["label"], "meta")
+        self.assertEqual(len(client.calls), 0)
+
     def test_classifier_requests_structured_json(self):
         client = FakeOllamaClient(
             ['{"label":"answer","reason":"Relevant response."}']
