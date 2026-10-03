@@ -1,31 +1,29 @@
-# 1. Base image
 FROM python:3.14.7-slim
 
-# 2. System deps for gTTS
+WORKDIR /app
+
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       libssl-dev libglib2.0-0 libnss3 libgdk-pixbuf2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Set working directory
-WORKDIR /app
-
-# 4. Install Python deps
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copy code
 COPY . .
 
-# 6. Expose port and start server
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    OLLAMA_BASE_URL=http://host.docker.internal:11434
+
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
 
-# Run as a non-root user in the container.
-RUN useradd --create-home --shell /usr/sbin/nologin appuser \
-    && chown -R appuser:appuser /app
+RUN useradd --create-home --shell /usr/sbin/nologin appuser && \
+    chown -R appuser:appuser /app
+
 USER appuser
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 
 CMD ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
