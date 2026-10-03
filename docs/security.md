@@ -13,6 +13,8 @@
 - Docker runs the application as a non-root user.
 - CORS is configurable through `CORS_ORIGINS`.
 - Baseline browser security headers are applied.
+- The container uses Gunicorn rather than Flask's development server.
+- Readiness verifies reachability of the configured Ollama service.
 - CI has read-only repository permissions and runs dependency auditing.
 
 ## Deployment requirements
