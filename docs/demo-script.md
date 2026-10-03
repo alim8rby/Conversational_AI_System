@@ -1,45 +1,72 @@
-# Portfolio Demo Script
+# Portfolio Demo Script — ShopAssist
 
 ## 1. Start Ollama
 
-Verify the local model service is running and the configured chat and embedding models are installed.
+Make sure the configured local models are available:
 
-## 2. Start the application
+\`\`\`bash
+ollama pull llama3.2:3b
+ollama pull nomic-embed-text
+\`\`\`
 
-```bash
+## 2. Index the reference domain
+
+\`\`\`bash
+python -m scripts.index_domain
+\`\`\`
+
+This builds the local vector store from the ShopAssist catalog, shipping, return, and FAQ knowledge.
+
+## 3. Start the application
+
+\`\`\`bash
 python app.py
-```
+\`\`\`
 
-Open `http://localhost:8000`.
+Open \`http://localhost:8000\`.
 
-## 3. Demonstrate conversation
+## 4. Demonstrate the business path
 
-Complete several structured intake responses and show the session-progress indicator.
+Ask:
 
-## 4. Demonstrate inspection
+> What is the price of TrailRunner X1?
 
-Use:
+Then:
 
-- `/session/<id>/state`
-- `/session/<id>/memory?q=<query>`
+> What is the status of order ORD-1001?
 
-Explain that state and retrieval are inspectable rather than hidden.
+The point is to show the path around the model:
 
-## 5. Demonstrate evaluation
+\`\`\`text
+request → workflow → authorized tool / knowledge → policy → response → run evidence
+\`\`\`
 
-Open `/evaluation` and distinguish measured evidence from blocked or unavailable measurements.
+## 5. Demonstrate the inspectability
 
-## 6. Demonstrate failures and operations
+Show:
 
-Open:
+- \`/session/<id>/state\`
+- \`/session/<id>/memory?q=price\`
+- \`/evaluation\`
+- \`/failures\`
+- \`/operations\`
 
-- `/failures`
-- `/operations`
+The repository makes state, evidence, failures, and operational summaries inspectable instead of hiding them behind the chat UI.
 
-Explain the loop:
+## 6. Explain the evidence boundary
 
-`failure → hypothesis → experiment → validation`
+Use the labels deliberately:
 
-## 7. Close with the engineering story
+- **completed** — executable or deterministic evidence exists
+- **not_measured** — the evaluation protocol exists, but no scored runtime result is claimed
+- **blocked** — required evidence is unavailable
 
-The project is not only a chatbot. It is a local-first conversational AI system with state, memory, evaluation, observability, failure analysis, and operational surfaces.
+The Evaluation Lab exposes the synthetic retrieval benchmark as repository evidence while keeping live retrieval and generation quality clearly separate.
+
+## 7. Close
+
+\`\`\`text
+Build → Instrument → Evaluate → Observe failure → Experiment → Validate
+\`\`\`
+
+The portfolio story is the engineering system around a conversational model, not simply the model response.
