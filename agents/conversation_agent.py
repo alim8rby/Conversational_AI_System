@@ -87,10 +87,13 @@ class ConversationAgent:
         self.interviewer = InterviewManager()
         self.awaiting: Dict[str, Tuple[str, str]] = {}
         self.histories: Dict[str, List[dict]] = {}
+        self.session_languages: Dict[str, str] = {}
         self.clarify_counts: Dict[Tuple[str, str, str], int] = {}
 
     def start_session(self, session_id: str, lang: str = "en") -> str:
-        """Initialize a session according to the active domain configuration."""
+        """Initialize a session and persist its selected response language."""
+        lang = lang if lang in {"en", "ar"} else "en"
+        self.session_languages[session_id] = lang
         self.histories.setdefault(session_id, [])
 
         if not self.intake_enabled:
@@ -167,7 +170,12 @@ class ConversationAgent:
         return acknowledgement + (question or "")
 
     def ask(self, session_id: str, user_message: str) -> str:
-        lang = detect_language(user_message)
+        # A started session owns its language. Detection is only a fallback for
+        # callers that bypass the explicit session-start endpoint.
+        lang = self.session_languages.get(session_id)
+        if lang is None:
+            lang = detect_language(user_message)
+            self.session_languages[session_id] = lang
         run = new_run(
             session_id,
             user_message,
@@ -206,7 +214,11 @@ class ConversationAgent:
             )
             finish_run(run)
             self.last_turn_metrics = run["metrics"]["policy"]
-            return "I can't help with requests that attempt to bypass system safeguards."
+            return (
+                "لا أستطيع المساعدة في طلبات تهدف إلى تجاوز ضوابط أمان النظام."
+                if lang == "ar"
+                else "I can't help with requests that attempt to bypass system safeguards."
+            )
 
         if self.intake_enabled:
             self.interviewer.init_session(session_id)
@@ -469,7 +481,11 @@ class ConversationAgent:
             )
             finish_run(run)
             self.last_turn_metrics = run["metrics"]["output_policy"]
-            return "Sorry, I cannot provide that response."
+            return (
+                "عذراً، لا أستطيع تقديم هذه الاستجابة."
+                if lang == "ar"
+                else "Sorry, I cannot provide that response."
+            )
 
         finish_run(run)
 
