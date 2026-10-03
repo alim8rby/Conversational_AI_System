@@ -392,7 +392,7 @@ class ConversationAgent:
             item["text"] if isinstance(item, dict) else item for item in memories
         )
         system = (
-            "You are a concise conversational AI. Use the provided session information, "
+            f"You are a concise conversational AI. Respond in {'Arabic' if lang == 'ar' else 'English'}. " \n            "Do not switch languages unless the session language is explicitly changed. " \n            "Use the provided session information, "
             "relevant conversation memory, and domain knowledge to answer the user. "
             "Treat domain knowledge as the source of truth for business facts. "
             "Follow the selected workflow plan and do not claim a tool action has happened unless a tool actually ran. "
