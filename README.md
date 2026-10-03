@@ -2,28 +2,31 @@
 
 A local-first, stateful conversational AI application built to demonstrate the engineering around an AI system — not just the model response.
 
-The system combines:
+The reference product is **ShopAssist**, a configurable e-commerce assistant domain that exercises workflow routing, business knowledge, tool execution, policy enforcement, semantic memory, voice output, evaluation, observability, failure analysis, and operations.
+
+## What the system demonstrates
 
 - domain-configurable workflows
 - policy and guardrail evaluation
-- structured multi-turn dialogue
-- session state
+- multi-turn conversation and explicit session lifecycle
 - local LLM inference with Ollama
 - local embeddings with Ollama
 - session-scoped semantic memory
-- retrieval inspection
-- voice output
+- knowledge retrieval
+- controlled business-tool execution
+- multilingual response language (\`en\` / \`ar\`)
+- explicit-language TTS
 - run-level observability
-- deterministic and retrieval evaluation
-- failure analysis
-- controlled experiments
+- structured failure records
+- deterministic and synthetic evaluation
+- live retrieval evaluation entry point
 - operations monitoring
 - Docker and CI/CD
-- baseline application security
+- application security baseline
 
 ## Architecture
 
-```
+\`\`\`text
 Browser
    ↓
 Flask API
@@ -32,31 +35,31 @@ ConversationAgent
    ├── PolicyEngine
    ├── WorkflowManager
    ├── ToolManager
-   ├── OllamaClient → local LLM
+   ├── OllamaClient → local LLM + embeddings
    ├── KnowledgeBase → domain retrieval
-   ├── MemoryManager → local semantic memory
-   └── VoiceEngine
+   ├── MemoryManager → session semantic memory
+   └── VoiceEngine → explicit session language
    ↓
-Observability
+Run Evidence
    ├── Runs
    └── Failures
    ↓
-Evaluation
-   ├── Dialogue
-   ├── Retrieval
-   ├── Generation
-   └── Voice
+Evaluation Lab
+   ├── Deterministic dialogue
+   ├── Synthetic retrieval
+   ├── Runtime retrieval entry point
+   └── Generation protocol
    ↓
 Operations
-```
+\`\`\`
 
-The important design idea is the full engineering loop:
+The core engineering loop is:
 
-```
+\`\`\`text
 Build → Instrument → Evaluate → Observe Failure
                     ↓
              Experiment → Validate
-```
+\`\`\`
 
 ## Local stack
 
@@ -77,228 +80,206 @@ No paid AI API or hosted vector database is required.
 
 - Python 3.14.7
 - Ollama
-- Ollama models:
-  - `llama3.2:3b`
-  - `nomic-embed-text`
+- \`llama3.2:3b\`
+- \`nomic-embed-text\`
 
 Install the models:
 
-```bash
+\`\`\`bash
 ollama pull llama3.2:3b
 ollama pull nomic-embed-text
-```
-
-Make sure Ollama is running.
+\`\`\`
 
 ## Run locally
 
-Create and activate the Python 3.14.7 virtual environment. The repository includes a `.python-version` file so version-aware Python tooling can select the intended interpreter.
+Create the environment and install dependencies:
 
-Git Bash:
-
-```bash
+\`\`\`bash
 python -m venv .venv
 source .venv/Scripts/activate
-```
+pip install -r requirements.txt
+cp .env.example .env
+\`\`\`
 
-Verify:
+Verify the interpreter:
 
-```bash
+\`\`\`bash
 python --version
-```
+\`\`\`
 
 Expected:
 
-```
+\`\`\`text
 Python 3.14.7
-```
+\`\`\`
 
-Install dependencies:
+Index the demo domain:
 
-```bash
-pip install -r requirements.txt
-```
-
-Create the environment file:
-
-```bash
-cp .env.example .env
-```
-
-Default configuration:
-
-```text
-OLLAMA_BASE_URL=http://localhost:11434
-LLM_MODEL=llama3.2:3b
-EMBED_MODEL=nomic-embed-text
-MEMORY_STORE_PATH=data/memory.json
-PORT=8000
-```
-
-Index the domain knowledge before the first run:
-
-```bash
+\`\`\`bash
 python -m scripts.index_domain
-```
-
-This creates the local vector store used by RAG. Re-run the command whenever domain knowledge documents change.
+\`\`\`
 
 Start the application:
 
-```bash
+\`\`\`bash
 python app.py
-```
-
-For a deterministic local runtime check:
-
-```bash
-python -m scripts.runtime_smoke_test
-```
-
-The smoke test verifies the health/readiness endpoints, starts a session, and sends a real product question through the Flask application.
+\`\`\`
 
 Open:
 
-`http://localhost:8000`
+\`\`\`text
+http://localhost:8000
+\`\`\`
+
+## Portfolio demo
+
+The intended demo is ShopAssist:
+
+1. Ask: \`What is the price of TrailRunner X1?\`
+2. Ask: \`What is the status of order ORD-1001?\`
+3. Inspect \`/session/<id>/memory\`.
+4. Open \`/evaluation\`.
+5. Open \`/failures\` and \`/operations\`.
+
+The point is to show the system around the model: domain retrieval, authorized tools, policy constraints, semantic memory, voice output, and persistent evidence.
+
+See \`docs/demo-script.md\` for the full walkthrough.
 
 ## Product surfaces
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /` | Browser application |
-| `GET /health` | Process health |
-| `GET /ready` | Local AI readiness |
-| `POST /chat` | Conversation turn |\n| `POST /session/<id>/start` | Start intake and return the first question |
-| `GET /session/<id>/state` | Session progress |
-| `GET /session/<id>/memory` | Memory inspection |
-| `GET /evaluation` | Evaluation Lab |
-| `GET /failures` | Failure Observatory |
-| `GET /failures/<id>` | Failure detail |
-| `GET /operations` | Operations snapshot |
-
-## Conversation lifecycle
-
-The intake lifecycle is explicit:
-
-```text
-POST /session/<id>/start
-        ↓
-first intake question
-        ↓
-POST /chat
-        ↓
-record answer → next question
-        ↓
-...
-```
-
-The first user message is never silently consumed as a session-start trigger. `/chat` is an answer turn once a session has been started.
+| \`GET /\` | Browser demo |
+| \`GET /health\` | Process health |
+| \`GET /ready\` | Ollama-backed readiness |
+| \`POST /session/<id>/start\` | Start a session with \`en\` or \`ar\` |
+| \`POST /chat\` | Conversation turn |
+| \`GET /session/<id>/state\` | Session state |
+| \`GET /session/<id>/memory\` | Semantic-memory inspection |
+| \`GET /evaluation\` | Evaluation Lab |
+| \`GET /failures\` | Failure Observatory |
+| \`GET /failures/<id>\` | Failure detail |
+| \`GET /operations\` | Operations snapshot |
 
 ## Evaluation
 
-The repository distinguishes evidence types instead of inventing scores.
+The repository separates evidence types rather than manufacturing scores.
 
 ### Deterministic
 
-Tests:
+Run:
 
-- state transitions
-- answer validation
-- language routing
-- session isolation
-- intake completion
+\`\`\`bash
+python evaluation/run_baseline.py
+\`\`\`
+
+This covers dialogue-state behavior and other deterministic contracts.
+
+### Synthetic retrieval
 
 Run:
 
-```bash
-python evaluation/run_baseline.py
-```
+\`\`\`bash
+python evaluation/run_retrieval_eval.py
+\`\`\`
 
-### Retrieval
+This evaluates metric calculation against the versioned synthetic fixture.
 
-Metrics:
+### Live retrieval
 
-- Precision@K
-- Recall@K
-- MRR
+Run:
 
-The live retrieval evaluator uses the local Ollama embedding model and local memory store.
+\`\`\`bash
+python -m evaluation.run_live_retrieval_eval \\
+  --session-id demo \\
+  --query "previous order" \\
+  --relevant-id demo-1
+\`\`\`
+
+This requires the local Ollama embedding runtime and actual memory records.
 
 ### Generation
 
-Generation quality requires actual model outputs and a declared evaluation method.
+Generation cases and rubrics exist, but no quality score is claimed until actual outputs are reviewed under a declared judge or human-review protocol.
 
-### Voice
+### Evidence states
 
-Voice evaluation requires actual TTS execution.
+- \`completed\` — measured evidence exists
+- \`not_measured\` — protocol exists but no measured result is claimed
+- \`blocked\` — required runtime evidence is unavailable
 
-Unavailable evidence is represented as `blocked` or `not_measured`.
+## Observability and failure analysis
 
-## Failure → Experiment → Validation
+Every completed run is persisted locally. Recorded run errors are projected into \`FailureStore\` so failures become queryable product evidence instead of remaining only in logs.
 
-Failures are treated as engineering evidence.
+The lifecycle is:
 
-A failure record can capture:
+\`\`\`text
+Run → Error → Failure record → Experiment → Validation
+\`\`\`
 
-- what should have happened
-- what actually happened
-- evidence
-- severity
-- root-cause hypothesis
-- linked experiment
-- lifecycle status
-
-Experiments then provide:
-
-`Failure → Hypothesis → Intervention → Measurement → Decision`
-
-The first registered experiment, EXP001, documents the correction of a language-routing problem where numeric content could incorrectly influence language detection.
-
-## Repository structure
-
-```
-agents/              Conversation orchestration
-config/              Configuration and validation
-evaluation/          Evaluation engines and benchmarks
-experiments/         Controlled experiment registry
-memory/              Local semantic memory
-observability/       Run and failure evidence
-product/             Product-facing projections
-providers/           Ollama integration
-static/              Browser client
-tests/               Automated tests
-voice/               Text-to-speech
-docs/                Architecture and engineering documentation
-```
-
-## Tests
-
-```bash
-python -m unittest discover -s tests -v
-pytest -q
-python -m compileall -q .
-```
-
-CI also builds the Docker image and runs `pip-audit`.
+Input is redacted from persisted run records by default.
 
 ## Docker
 
-The application container does not contain Ollama. Ollama remains a separate local service.
+The image does **not** contain Ollama. Ollama remains a host-side service.
 
-On Docker Desktop, the application can reach a host Ollama instance through the appropriate host gateway address, for example:
+Docker Desktop example:
 
-```text
-OLLAMA_BASE_URL=http://host.docker.internal:11434
-```
+\`\`\`bash
+docker build -t conversational-ai-system .
+docker run --rm -p 8000:8000 \\
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \\
+  conversational-ai-system
+\`\`\`
 
-The exact host networking configuration is environment-dependent.
+The provided Dockerfile defaults \`OLLAMA_BASE_URL\` to \`http://host.docker.internal:11434\` for this local-demo pattern.
+
+For Linux hosts, use the host networking/addressing mechanism appropriate to your environment; do not assume \`host.docker.internal\` is available everywhere.
+
+## Runtime smoke test
+
+With the application running:
+
+\`\`\`bash
+python -m scripts.runtime_smoke_test
+\`\`\`
+
+The smoke test checks health/readiness, starts a real ShopAssist session, sends a product question, verifies a non-empty business response, and reports the returned voice artifact.
+
+## Configuration
+
+The main runtime configuration lives in \`.env.example\`. Settings now cover the application, model runtime, domain pack, tool timeout, and observability directories.
+
+\`\`\`text
+OLLAMA_BASE_URL
+LLM_MODEL
+EMBED_MODEL
+DOMAIN_CONFIG_PATH
+MEMORY_STORE_PATH
+TOOL_TIMEOUT_SECONDS
+OBSERVABILITY_RUNS_DIR
+OBSERVABILITY_FAILURES_DIR
+\`\`\`
+
+## Tests
+
+\`\`\`bash
+python -m unittest discover -s tests -v
+pytest -q
+python -m compileall -q .
+\`\`\`
+
+CI also builds the Docker image and runs \`pip-audit\`.
 
 ## Security baseline
 
 Implemented:
 
 - request-size limits
-- session/message limits
+- strict session-ID format
+- safe TTS output path construction
+- message limits
 - generic client errors
 - configurable CORS
 - security response headers
@@ -308,23 +289,46 @@ Implemented:
 - read-only CI permissions
 - dependency auditing
 
-A public deployment would additionally require authentication, authorization, TLS, rate limiting, network controls, and production secret/logging management.
+A public deployment would additionally require authentication, authorization, TLS, rate limiting, network controls, centralized logging, durable shared state, secret management where secrets are introduced, and deployment-level container verification.
 
 ## Verification boundary
 
-The repository is standardized on Python 3.14.7 across local development, CI, and Docker.
+The repository documents local runtime verification separately from what is established by code and deterministic tests.
 
-The core application has now been **runtime-verified locally** through the Flask application with the local Ollama stack.
+The portfolio-safe claims are:
 
-Verified runtime gates include session continuity, real `order_lookup` execution, input/output policy enforcement, controlled tool-failure handling, Arabic session-language persistence and classification regression, and semantic memory persistence/retrieval. These checks establish the demonstrated local path only; they do not establish production-scale generation quality, voice quality, Docker execution, CI execution, authentication, or public-deployment security.
+- the architecture and product surfaces are implemented in the repository
+- deterministic and synthetic evaluation are inspectable
+- runtime-dependent evaluation has explicit entry points
+- generation quality remains unscored unless real outputs are reviewed
+- Docker-to-host Ollama is documented as a local-demo pattern, not a verified production deployment
+
+## Repository structure
+
+\`\`\`text
+agents/              Conversation orchestration
+config/              Configuration
+domains/             Reference and test domain packs
+evaluation/          Evaluation engines and benchmarks
+experiments/         Controlled experiments
+knowledge/           Domain RAG
+memory/              Session semantic memory
+observability/       Run and failure evidence
+policies/            Policy engine
+product/             Product-facing projections
+providers/           Ollama integration
+scripts/              Runtime and indexing utilities
+static/              Browser demo
+tests/               Automated tests
+tools/               Business-tool registry and demo tools
+voice/               Text-to-speech
+workflows/           Workflow routing
+docs/                Architecture and portfolio material
+\`\`\`
 
 ## Portfolio positioning
 
-The project demonstrates:
-
-> **How to build, inspect, evaluate, debug, and improve a modular, domain-aware conversational AI system.**
-
-It is intentionally more than a chatbot demo.
+> **A modular, local-first conversational AI system designed to be built, inspected, evaluated, debugged, and improved — not merely prompted.**
 
 ## Disclaimer
 
