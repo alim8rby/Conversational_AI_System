@@ -19,10 +19,22 @@ The repository now uses Ollama for model inference and embeddings and a local JS
 11. Security baseline
 12. Portfolio documentation
 
+### Runtime verification milestone
+
+The complete local runtime verification gate is now complete.
+
+Verified:
+
+1. Conversation and session continuity
+2. Domain workflow routing and real `order_lookup` execution
+3. Input and output policy enforcement
+4. Controlled failure handling
+5. Arabic session-language persistence and classification regression
+6. Semantic memory persistence and retrieval
+
 ### Next development priorities
 
-- verify the complete local runtime
-- add stronger automated integration tests
+- add stronger automated integration tests around the verified runtime paths
 - improve persistent/session storage boundaries
 - measure real retrieval and generation behavior
 - add authentication before any public deployment
